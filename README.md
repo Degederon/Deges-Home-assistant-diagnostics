@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.svg" alt="Dege's Home Assistant Diagnostics" width="96" height="96">
+  <img src="icon.svg" alt="Home Assistant Diagnostics" width="96" height="96">
 </p>
 
-<h1 align="center">Dege's Home Assistant Diagnostics</h1>
+<h1 align="center">Home Assistant Diagnostics</h1>
 
 <p align="center">
   <strong>Plain-language health checks for your Home Assistant system, devices, automations and dashboards.</strong>
@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Home Assistant 2025.1+" src="https://img.shields.io/badge/Home%20Assistant-2025.1%2B-41BDF5?logo=homeassistant&logoColor=white">
-  <img alt="version 1.0.2" src="https://img.shields.io/badge/version-1.0.2-6E56CF">
+  <img alt="version 1.0.3" src="https://img.shields.io/badge/version-1.0.3-6E56CF">
   <img alt="languages: English" src="https://img.shields.io/badge/languages-English-2EA043">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-D4B106"></a>
 </p>

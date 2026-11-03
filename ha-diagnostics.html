@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dege's HA Diagnostics</title>
+<title>Home Assistant Diagnostics</title>
 <style>
 :root{
   --bg:#f3f5f8; --card:#ffffff; --text:#1b2330; --muted:#5d6878; --line:#e1e6ed; --soft:#f7f9fb;
@@ -146,7 +146,7 @@ footer{margin:28px 0 12px;font-size:12px;color:var(--muted);text-align:center}
     <div class="brand">
       <img class="logo" alt="" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMmE0YSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNjEzMWYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjU1IiByPSIwLjU1Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDNhOWY0IiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDNhOWY0IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InB1bHNlIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzRmYzNmNyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMGU1ZmYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iNyIgcmVzdWx0PSJiIi8+CiAgICAgIDxmZU1lcmdlPjxmZU1lcmdlTm9kZSBpbj0iYiIvPjxmZU1lcmdlTm9kZSBpbj0iU291cmNlR3JhcGhpYyIvPjwvZmVNZXJnZT4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNnbG93KSIvPgogIDwhLS0gZ3JpZCAtLT4KICA8ZyBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjIiPgogICAgPHBhdGggZD0iTTAgMTI4SDUxMk0wIDE5Mkg1MTJNMCAyNTZINTEyTTAgMzIwSDUxMk0wIDM4NEg1MTJNMTI4IDBWNTEyTTE5MiAwVjUxMk0yNTYgMFY1MTJNMzIwIDBWNTEyTTM4NCAwVjUxMiIvPgogIDwvZz4KICA8IS0tIGhvdXNlIG91dGxpbmUgLS0+CiAgPHBhdGggZD0iTTExMiAyNDggTDI1NiAxMjggTDQwMCAyNDggVjM5MiBRNDAwIDQwOCAzODQgNDA4IEgxMjggUTExMiA0MDggMTEyIDM5MiBaIgogICAgICAgIGZpbGw9IiMwZjM1NTciIGZpbGwtb3BhY2l0eT0iMC41NSIgc3Ryb2tlPSIjZTNmMmZkIiBzdHJva2Utd2lkdGg9IjIyIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBwdWxzZSBsaW5lIC0tPgogIDxwYXRoIGQ9Ik02MCAzMDAgSDE3MCBMMTk4IDI1MiBMMjMyIDM1MiBMMjY4IDIxNCBMMjk4IDMwMCBINDUyIgogICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNwdWxzZSkiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI3NvZnQpIi8+CiAgPCEtLSBjaGVjayBiYWRnZSAtLT4KICA8Y2lyY2xlIGN4PSIzOTIiIGN5PSIzOTIiIHI9Ijc4IiBmaWxsPSIjMDYxMzFmIi8+CiAgPGNpcmNsZSBjeD0iMzkyIiBjeT0iMzkyIiByPSI2NCIgZmlsbD0iIzJlY2M3MSIvPgogIDxwYXRoIGQ9Ik0zNjIgMzkzIEwzODQgNDE1IEw0MjQgMzcyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K">
       <div>
-        <h1>Dege's Home Assistant Diagnostics</h1>
+        <h1>Home Assistant Diagnostics</h1>
         <div class="sub">Health checks for your system, devices, automations and more</div>
       </div>
     </div>
@@ -210,7 +210,7 @@ footer{margin:28px 0 12px;font-size:12px;color:var(--muted);text-align:center}
 
   <section id="report" class="hidden"></section>
 
-  <footer>Read-only: these checks only look at your system and never change anything. Results stay in this browser. · v1.0.2</footer>
+  <footer>Read-only: these checks only look at your system and never change anything. Results stay in this browser. · v1.0.3</footer>
 </div>
 
 <script>
@@ -498,7 +498,7 @@ function makeCtx(conn, settings) {
     sup: ep => memo('sup:' + ep, () => call({ type: 'supervisor/api', endpoint: ep, method: 'get' })),
     supervised: async () => ((await ctx.config()).components || []).includes('hassio'),
     stateMap: () => memo('stateMap', async () => new Map((await ctx.states()).map(s => [s.entity_id, s]))),
-    regMap: () => memo('regMap', async () => new Map((await ctx.entReg()).map(e => [e.entity_id, e]))),
+    regMap: () => memo('regMap', async () => (REG = new Map((await ctx.entReg()).map(e => [e.entity_id, e])))),
     devMap: () => memo('devMap', async () => new Map((await ctx.devReg()).map(d => [d.id, d]))),
     platformOf: async id => { const r = (await ctx.regMap()).get(id); return (r && r.platform) || dom(id); },
     dashboards: () => memo('dash', async () => {
@@ -520,7 +520,10 @@ function makeCtx(conn, settings) {
 
 const R = {};
 ['pass', 'warn', 'fail', 'info', 'skip'].forEach(s => { R[s] = (summary, o = {}) => ({ status: s, summary, ...o }); });
-const entItem = (s, extra, level) => ({ label: nm(s), sub: s.entity_id + (extra ? ' · ' + extra : ''), link: '/history?entity_id=' + encodeURIComponent(s.entity_id), level });
+// Entity registry of the current run, so an entity's "Open" link can go to the device it belongs to.
+let REG = new Map();
+const entLink = s => { const r = REG.get(s.entity_id); return r && r.device_id ? '/config/devices/device/' + r.device_id : '/history?entity_id=' + encodeURIComponent(s.entity_id); };
+const entItem = (s, extra, level) => ({ label: nm(s), sub: s.entity_id + (extra ? ' · ' + extra : ''), link: entLink(s), level });
 // Where to edit an automation or script. Scripts edit by object id; automations need an "id" (YAML-only ones without one have no editor).
 const editLink = s => dom(s.entity_id) === 'script' ? '/config/script/edit/' + s.entity_id.split('.')[1]
   : (s.attributes.id != null ? '/config/automation/edit/' + encodeURIComponent(s.attributes.id) : null);
@@ -665,7 +668,7 @@ def({ id: 'entities.unavailable', cat: 'entities', level: 'basic', quick: true, 
   explain: 'An unavailable entity is usually a device that is unplugged, out of range, has a dead battery, or belongs to an integration that failed to load.',
   fix: 'Start with the integration that has the most unavailable entities. Check its devices have power and are in range, then reload the integration. Remove entities for devices you no longer own.',
   async run(ctx) {
-    const states = await ctx.states();
+    const states = await ctx.states(); await ctx.regMap();
     const un = states.filter(s => s.state === 'unavailable' && !s.attributes.restored);
     if (!un.length) return R.pass(`All ${states.length} entities are reachable`);
     const by = {};
@@ -692,7 +695,7 @@ def({ id: 'entities.battery', cat: 'entities', level: 'basic', quick: true, titl
   explain: 'Devices with a dead battery stop reporting, so motion, door and leak alerts quietly stop working.',
   fix: 'Replace the batteries in the devices listed, starting with the lowest.',
   async run(ctx) {
-    const thr = ctx.settings.battery, low = [];
+    const thr = ctx.settings.battery, low = []; await ctx.regMap();
     for (const s of await ctx.states()) {
       if (s.attributes.device_class !== 'battery') continue;
       if (dom(s.entity_id) === 'sensor') { const v = parseFloat(s.state); if (!isNaN(v) && v < thr) low.push({ s, v }); }
@@ -709,7 +712,7 @@ def({ id: 'entities.stale', cat: 'entities', level: 'basic', title: 'Stale senso
   fix: 'Check the device\'s battery and signal. Re-pair it or reload its integration if needed.',
   async run(ctx) {
     const cls = ['temperature', 'humidity', 'pressure', 'atmospheric_pressure', 'illuminance', 'carbon_dioxide', 'pm25', 'voltage'];
-    const cut = Date.now() - ctx.settings.staleHours * 3600e3;
+    const cut = Date.now() - ctx.settings.staleHours * 3600e3; await ctx.regMap();
     const stale = (await ctx.states()).filter(s => ((dom(s.entity_id) === 'sensor' && cls.includes(s.attributes.device_class)) || dom(s.entity_id) === 'weather')
       && !['unavailable', 'unknown'].includes(s.state) && Date.parse(s.last_reported || s.last_updated) < cut);
     if (!stale.length) return R.pass(`All environment sensors reported within ${ctx.settings.staleHours} h`);
@@ -730,6 +733,7 @@ def({ id: 'entities.unknown', cat: 'entities', level: 'advanced', title: 'Entiti
   fix: 'Review the sensors listed. Template sensors showing "unknown" often have an error in their template.',
   async run(ctx) {
     const skip = ['button', 'scene', 'event', 'input_button', 'notify', 'conversation', 'tts', 'stt', 'wake_word', 'image', 'text', 'assist_satellite', 'select', 'number', 'update'];
+    await ctx.regMap();
     const u = (await ctx.states()).filter(s => s.state === 'unknown' && !skip.includes(dom(s.entity_id)) && s.attributes.device_class !== 'timestamp');
     if (!u.length) return R.pass('No unexpected unknown states');
     return R.info(`${pl(u.length, 'entity', 'entities')} in unknown state`, { items: u.map(s => entItem(s)) });
@@ -763,7 +767,7 @@ def({ id: 'automations.unavailable', cat: 'automations', level: 'basic', quick: 
   async run(ctx) {
     const b = (await ctx.states()).filter(s => ['automation', 'script'].includes(dom(s.entity_id)) && s.state === 'unavailable');
     if (!b.length) return R.pass('All automations and scripts loaded');
-    return R.fail(`${pl(b.length, 'automation or script', 'automations or scripts')} failed to load`, { items: b.map(s => ({ ...entItem(s, null, 'fail'), link: '/config/automation/dashboard' })) });
+    return R.fail(`${pl(b.length, 'automation or script', 'automations or scripts')} failed to load`, { items: b.map(s => ({ ...entItem(s, null, 'fail'), link: editLink(s) || `/config/${dom(s.entity_id)}/dashboard` })) });
   } });
 def({ id: 'automations.errors', cat: 'automations', level: 'basic', quick: true, title: 'Recent run errors',
   desc: 'Automations and scripts whose recent runs stopped with an error.',
@@ -800,7 +804,7 @@ def({ id: 'automations.refs', cat: 'automations', level: 'advanced', title: 'Mis
         if (k === 'device_id') (Array.isArray(v) ? v : [v]).forEach(x => { if (typeof x === 'string' && !x.includes('{') && dm.size && !dm.has(x)) miss.add('device ' + x); });
         if ((k === 'action' || k === 'service') && svc && typeof v === 'string' && ENTITY_RE.test(v)) { const [d, n] = v.split('.'); if (!(svc[d] && svc[d][n])) miss.add('action ' + v); }
       });
-      if (miss.size) items.push({ label: nm(s), sub: [...miss].join(', ') + yamlNote(s), link: editLink(s), level: 'warn' });
+      if (miss.size) items.push({ label: nm(s), sub: [...miss].join(', ') + yamlNote(s), link: editLink(s) || `/config/${dom(s.entity_id)}/dashboard`, level: 'warn' });
     });
     if (!items.length) return R.pass(`Checked ${pl(targets.length, 'automation/script', 'automations/scripts')}: all references exist`);
     return R.warn(`${pl(items.length, 'automation/script', 'automations/scripts')} use things that don't exist`, { items });
@@ -812,7 +816,7 @@ def({ id: 'automations.off', cat: 'automations', level: 'basic', title: 'Turned-
   async run(ctx) {
     const o = (await ctx.states()).filter(s => dom(s.entity_id) === 'automation' && s.state === 'off');
     if (!o.length) return R.pass('All automations are on');
-    return R.info(`${pl(o.length, 'automation')} turned off`, { items: o.map(s => ({ ...entItem(s, 'last ran ' + ago(s.attributes.last_triggered) + yamlNote(s)), link: editLink(s) })) });
+    return R.info(`${pl(o.length, 'automation')} turned off`, { items: o.map(s => ({ ...entItem(s, 'last ran ' + ago(s.attributes.last_triggered) + yamlNote(s)), link: editLink(s) || '/config/automation/dashboard' })) });
   } });
 def({ id: 'automations.never', cat: 'automations', level: 'advanced', title: 'Never-triggered automations',
   desc: 'Enabled automations with no recorded run.',
@@ -821,7 +825,7 @@ def({ id: 'automations.never', cat: 'automations', level: 'advanced', title: 'Ne
   async run(ctx) {
     const n = (await ctx.states()).filter(s => dom(s.entity_id) === 'automation' && s.state === 'on' && !s.attributes.last_triggered);
     if (!n.length) return R.pass('Every enabled automation has run at least once');
-    return R.info(`${pl(n.length, 'automation')} never triggered`, { items: n.map(s => ({ ...entItem(s, yamlNote(s).slice(3) || null), link: editLink(s) })) });
+    return R.info(`${pl(n.length, 'automation')} never triggered`, { items: n.map(s => ({ ...entItem(s, yamlNote(s).slice(3) || null), link: editLink(s) || '/config/automation/dashboard' })) });
   } });
 
 /* Dashboards */
@@ -1017,7 +1021,7 @@ def({ id: 'host.addons', cat: 'host', level: 'basic', title: 'Apps',
     if (!(await ctx.supervised())) return notSupervised();
     const v = String((await ctx.config()).version || '').split('.').map(Number);
     const appsUI = v[0] > 2026 || (v[0] === 2026 && v[1] >= 2); // add-ons became apps in 2026.2
-    const link = slug => appsUI ? '/config/app/' + slug : '/hassio/addon/' + slug + '/info';
+    const link = slug => appsUI ? '/config/app/' + slug + '/info' : '/hassio/addon/' + slug + '/info';
     const a = (await ctx.sup('/addons')).addons || [], items = [], down = [];
     const stopped = a.filter(x => x.state !== 'started' && x.state !== 'startup');
     const info = await pool(stopped, 4, x => ctx.sup(`/addons/${x.slug}/info`));
@@ -1159,6 +1163,7 @@ async function runChecks(ids) {
   if (!conn || running) return;
   const list = C.filter(c => ids.includes(c.id)); if (!list.length) return;
   running = true; cancelled = false; syncSelection();
+  REG = new Map();
   const ctx = makeCtx(conn, settings);
   const run = { started: Date.now(), kind: conn.kind, results: [] };
   $('#report').classList.add('hidden'); $('#progress').classList.remove('hidden'); $('#live').innerHTML = '';
@@ -1283,7 +1288,7 @@ function toMarkdown(run) {
   const rs = run.results.filter(r => C.some(c => c.id === r.id));
   const order = ['fail', 'warn', 'info', 'pass', 'skip'];
   const counts = order.map(s => `${SLABEL[s]}: ${rs.filter(r => r.res.status === s).length}`).join(' · ');
-  let md = `# Dege's Home Assistant Diagnostics Report\n\n${new Date(run.finished).toLocaleString()}${run.haVersion ? ` · Home Assistant ${run.haVersion}` : ''}${run.kind === 'demo' ? ' · DEMO DATA' : ''}\n\n**Health score:** ${scoreOf(rs) ?? '–'}/100  \n${counts}\n`;
+  let md = `# Home Assistant Diagnostics Report\n\n${new Date(run.finished).toLocaleString()}${run.haVersion ? ` · Home Assistant ${run.haVersion}` : ''}${run.kind === 'demo' ? ' · DEMO DATA' : ''}\n\n**Health score:** ${scoreOf(rs) ?? '–'}/100  \n${counts}\n`;
   for (const s of order) {
     const list = rs.filter(r => r.res.status === s); if (!list.length) continue;
     md += `\n## ${SLABEL[s]}\n\n`;
