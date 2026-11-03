@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dege's HA Diagnostics</title>
+<style>
+:root{
+  --bg:#f3f5f8; --card:#ffffff; --text:#1b2330; --muted:#5d6878; --line:#e1e6ed; --soft:#f7f9fb;
+  --accent:#039be5; --accent-ink:#fff;
+  --pass:#2e9d5b; --warn:#c98000; --fail:#d63b3b; --info:#3a78d4; --skip:#8a94a3;
+  --pass-bg:#e6f5ec; --warn-bg:#fff3d6; --fail-bg:#fde8e8; --info-bg:#e7effb; --skip-bg:#eef0f3;
+  --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#101317; --card:#1a1f26; --text:#e6eaf0; --muted:#9aa5b4; --line:#2a313b; --soft:#151a20;
+    --pass-bg:#16321f; --warn-bg:#382a0e; --fail-bg:#3b1a1a; --info-bg:#172843; --skip-bg:#252b33; --shadow:none; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:44px;height:44px;display:block}
+h1{font-size:20px;margin:0}
+.sub{color:var(--muted);font-size:13px}
+.top-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--skip)}
+.pill.on .dot{background:var(--pass)} .pill.busy .dot{background:var(--warn)} .pill.demo .dot{background:var(--info)} .pill.off .dot{background:var(--fail)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:transparent;padding:5px 12px;cursor:pointer;font-size:13px}
+.seg button.active{background:var(--accent);color:var(--accent-ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.pad{padding:16px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.small{padding:5px 10px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.hidden{display:none !important}
+.banner{padding:10px 14px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.banner.info{background:var(--info-bg)} .banner.warn{background:var(--warn-bg)} .banner.fail{background:var(--fail-bg)}
+/* Connect */
+#connect{margin-bottom:16px}
+#connect h2,.section-title{font-size:16px;margin:0 0 8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.form-grid label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=password],input[type=url],input[type=number]{border:1px solid var(--line);background:var(--soft);border-radius:8px;padding:8px 10px;width:100%}
+@media (max-width:640px){.form-grid{grid-template-columns:1fr}}
+/* Setup */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.cat{padding:14px}
+.cat-head{display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:600}
+.cat-icon{font-size:18px}
+.cat-count{margin-left:auto;font-weight:400;font-size:12px}
+.cat-desc{font-size:13px;margin:4px 0 8px 28px}
+.check-list{list-style:none;margin:0;padding:0}
+.check-list li{border-top:1px solid var(--line)}
+.check-list label{display:flex;gap:10px;padding:8px 0;cursor:pointer;align-items:flex-start}
+.check-list input{margin-top:3px}
+.check-title{font-weight:500}
+.check-desc{display:block;font-size:12.5px;color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:5px;background:var(--skip-bg);color:var(--muted);margin-left:6px;vertical-align:1px}
+.tag-quick{background:var(--info-bg);color:var(--info)}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.check-id{display:block;color:var(--muted)}
+body:not(.detailed) .det{display:none !important}
+body.detailed .simple-only{display:none !important}
+#thresholds{margin-top:12px}
+#thresholds summary{cursor:pointer;font-weight:600}
+.th-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
+.th-grid label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+/* Progress */
+#progress{margin:16px 0}
+.bar{height:8px;background:var(--soft);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.live{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:12.5px;background:var(--soft);border:1px solid var(--line)}
+.chip .d{width:8px;height:8px;border-radius:50%}
+.d.pass{background:var(--pass)} .d.warn{background:var(--warn)} .d.fail{background:var(--fail)} .d.info{background:var(--info)} .d.skip{background:var(--skip)}
+/* Report */
+#report{margin-top:16px}
+.summary{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+@media (max-width:640px){.summary{grid-template-columns:1fr;justify-items:start}}
+.ring{--p:0;--c:var(--pass);width:118px;height:118px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--soft) 0);display:grid;place-items:center}
+.ring>div{width:92px;height:92px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
+.ring b{font-size:28px;line-height:1}
+.ring small{font-size:11px;color:var(--muted)}
+.verdict{font-size:20px;font-weight:700;margin:0}
+.counts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.count{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--soft);cursor:pointer;font-size:13.5px}
+.count b{font-size:16px}
+.count.active{outline:2px solid var(--accent)}
+.count.pass b{color:var(--pass)} .count.warn b{color:var(--warn)} .count.fail b{color:var(--fail)} .count.info b{color:var(--info)} .count.skip b{color:var(--skip)}
+.meta{font-size:13px;color:var(--muted)}
+.report-tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin:16px 0 8px}
+.group-title{font-size:15px;margin:20px 0 8px;display:flex;align-items:center;gap:8px}
+.group-title .n{font-weight:400;color:var(--muted);font-size:13px}
+.finding{border:1px solid var(--line);border-left:4px solid var(--skip);border-radius:10px;background:var(--card);margin-bottom:8px}
+.finding.st-pass{border-left-color:var(--pass)} .finding.st-warn{border-left-color:var(--warn)} .finding.st-fail{border-left-color:var(--fail)} .finding.st-info{border-left-color:var(--info)}
+.finding summary{list-style:none;display:flex;gap:12px;align-items:flex-start;padding:12px 14px;cursor:pointer}
+.finding summary::-webkit-details-marker{display:none}
+.sticon{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff}
+.st-pass .sticon{background:var(--pass)} .st-warn .sticon{background:var(--warn)} .st-fail .sticon{background:var(--fail)} .st-info .sticon{background:var(--info)} .st-skip .sticon{background:var(--skip)}
+.f-main{flex:1;min-width:0}
+.f-title{font-weight:600;display:block}
+.f-sum{display:block;color:var(--muted);font-size:13.5px}
+.f-cat{font-size:12px;color:var(--muted);white-space:nowrap}
+.f-body{padding:0 14px 14px 50px;font-size:14px}
+.f-body p{margin:6px 0}
+.howto{background:var(--soft);border-radius:8px;padding:8px 12px;margin:8px 0}
+.items{list-style:none;padding:0;margin:8px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.items li{padding:7px 10px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.items li:first-child{border-top:0}
+.items li .lbl{flex:1;min-width:180px}
+.items li small{display:block;color:var(--muted);font-size:12px;word-break:break-word}
+.items li.lv-fail .lbl::before{content:"● ";color:var(--fail)}
+.items li.lv-warn .lbl::before{content:"● ";color:var(--warn)}
+.items li.lv-info .lbl::before{content:"● ";color:var(--info)}
+.items a{font-size:12.5px;white-space:nowrap}
+.delta{font-size:10.5px;font-weight:600;text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-left:8px;vertical-align:2px}
+.delta-new,.delta-worse{background:var(--fail-bg);color:var(--fail)}
+.delta-fixed{background:var(--pass-bg);color:var(--pass)}
+pre.raw{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:260px;overflow:auto;font-size:11.5px}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+footer{margin:28px 0 12px;font-size:12px;color:var(--muted);text-align:center}
+@media print{
+  header.top .top-right, #setup, #progress, #connect, .report-tools, footer, .no-print{display:none !important}
+  body{background:#fff;color:#000}
+  .card,.finding{box-shadow:none;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <img class="logo" alt="" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBiMmE0YSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNjEzMWYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjU1IiByPSIwLjU1Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDNhOWY0IiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDNhOWY0IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InB1bHNlIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzRmYzNmNyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMGU1ZmYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iNyIgcmVzdWx0PSJiIi8+CiAgICAgIDxmZU1lcmdlPjxmZU1lcmdlTm9kZSBpbj0iYiIvPjxmZU1lcmdlTm9kZSBpbj0iU291cmNlR3JhcGhpYyIvPjwvZmVNZXJnZT4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNnbG93KSIvPgogIDwhLS0gZ3JpZCAtLT4KICA8ZyBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjIiPgogICAgPHBhdGggZD0iTTAgMTI4SDUxMk0wIDE5Mkg1MTJNMCAyNTZINTEyTTAgMzIwSDUxMk0wIDM4NEg1MTJNMTI4IDBWNTEyTTE5MiAwVjUxMk0yNTYgMFY1MTJNMzIwIDBWNTEyTTM4NCAwVjUxMiIvPgogIDwvZz4KICA8IS0tIGhvdXNlIG91dGxpbmUgLS0+CiAgPHBhdGggZD0iTTExMiAyNDggTDI1NiAxMjggTDQwMCAyNDggVjM5MiBRNDAwIDQwOCAzODQgNDA4IEgxMjggUTExMiA0MDggMTEyIDM5MiBaIgogICAgICAgIGZpbGw9IiMwZjM1NTciIGZpbGwtb3BhY2l0eT0iMC41NSIgc3Ryb2tlPSIjZTNmMmZkIiBzdHJva2Utd2lkdGg9IjIyIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBwdWxzZSBsaW5lIC0tPgogIDxwYXRoIGQ9Ik02MCAzMDAgSDE3MCBMMTk4IDI1MiBMMjMyIDM1MiBMMjY4IDIxNCBMMjk4IDMwMCBINDUyIgogICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNwdWxzZSkiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsdGVyPSJ1cmwoI3NvZnQpIi8+CiAgPCEtLSBjaGVjayBiYWRnZSAtLT4KICA8Y2lyY2xlIGN4PSIzOTIiIGN5PSIzOTIiIHI9Ijc4IiBmaWxsPSIjMDYxMzFmIi8+CiAgPGNpcmNsZSBjeD0iMzkyIiBjeT0iMzkyIiByPSI2NCIgZmlsbD0iIzJlY2M3MSIvPgogIDxwYXRoIGQ9Ik0zNjIgMzkzIEwzODQgNDE1IEw0MjQgMzcyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K">
+      <div>
+        <h1>Dege's Home Assistant Diagnostics</h1>
+        <div class="sub">Health checks for your system, devices, automations and more</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <span id="connPill" class="pill busy"><span class="dot"></span><span id="connText">Starting…</span></span>
+      <div class="seg" role="group" aria-label="View mode">
+        <button data-mode="simple" title="Plain-language explanations and fixes">Simple</button>
+        <button data-mode="detailed" title="Entity IDs, full lists, raw data and thresholds">Detailed</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="demoBanner" class="banner info hidden">You're viewing <b>demo mode</b> with sample data. Nothing here comes from your system. <a href="#" id="leaveDemo">Connect to Home Assistant</a></div>
+
+  <section id="connect" class="card pad hidden">
+    <h2>Connect to Home Assistant</h2>
+    <p class="muted" style="margin:0">If you open this page from inside Home Assistant (for example a sidebar link to <code>/local/ha-diagnostics.html</code>), it uses your current login automatically. Otherwise, enter your Home Assistant address and a long-lived access token (Profile → Security → Long-lived access tokens).</p>
+    <div class="form-grid">
+      <label>Home Assistant URL<input id="haUrl" type="url" placeholder="http://homeassistant.local:8123"></label>
+      <label>Long-lived access token<input id="haToken" type="password" placeholder="eyJ0eXAiOi…" autocomplete="off"></label>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btnConnect">Connect</button>
+      <label class="row muted" style="font-size:13px"><input type="checkbox" id="rememberTok"> Remember on this device</label>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="btnDemo">Try demo mode</button>
+    </div>
+    <div id="connErr" class="banner fail hidden" style="margin:12px 0 0"></div>
+  </section>
+
+  <section id="setup">
+    <div class="toolbar">
+      <div class="presets">
+        <button class="btn primary run-btn" id="runQuick" title="The most important checks, about a minute">⚡ Quick health check</button>
+        <button class="btn run-btn" id="runAll">Run all checks</button>
+        <button class="btn run-btn" id="runSel">Run selected (0)</button>
+      </div>
+      <div class="row">
+        <button class="btn small ghost" id="selAll">Select all</button>
+        <button class="btn small ghost" id="selNone">Select none</button>
+        <button class="btn small ghost" id="selQuick">Select quick set</button>
+        <button class="btn small ghost hidden" id="showLast">View last report</button>
+      </div>
+    </div>
+    <div id="checks" class="cats"></div>
+    <details id="thresholds" class="card pad det">
+      <summary>Thresholds</summary>
+      <div class="th-grid" id="thGrid"></div>
+      <div class="row" style="margin-top:10px"><button class="btn small" id="thReset">Reset to defaults</button></div>
+    </details>
+  </section>
+
+  <section id="progress" class="card pad hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b id="progText">Running…</b>
+      <button class="btn small" id="btnCancel">Cancel</button>
+    </div>
+    <div class="bar"><i id="progBar"></i></div>
+    <div id="live" class="live"></div>
+  </section>
+
+  <section id="report" class="hidden"></section>
+
+  <footer>Read-only: these checks only look at your system and never change anything. Results stay in this browser. · v1.0.2</footer>
+</div>
+
+<script>
+'use strict';
+/* ---------------- Utilities ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const pl = (n, w, p) => `${n} ${n === 1 ? w : (p || w + 's')}`;
+const nm = s => (s && s.attributes && s.attributes.friendly_name) || (s && s.entity_id) || '';
+const dom = id => String(id).split('.')[0];
+const human = s => { s = String(s || '').replace(/[_-]+/g, ' ').trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
+const trunc = (s, n = 160) => { s = String(s ?? ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+const ENTITY_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+function ago(t) {
+  if (t == null) return 'never';
+  const ms = typeof t === 'number' ? t : Date.parse(t);
+  if (isNaN(ms)) return 'unknown';
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return pl(Math.round(s / 86400), 'day') + ' ago';
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('hadiag.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('hadiag.' + k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem('hadiag.' + k); } catch {} },
+};
+function timeout(p, ms) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('Timed out'), { code: 'timeout' })), ms))]);
+}
+async function pool(arr, n, fn) {
+  const out = []; let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, arr.length) }, async () => {
+    while (i < arr.length) { const k = i++; try { out[k] = await fn(arr[k]); } catch (e) { out[k] = { __err: e }; } }
+  }));
+  return out;
+}
+function walk(o, fn) {
+  if (Array.isArray(o)) o.forEach(x => walk(x, fn));
+  else if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) { fn(k, v, o); walk(v, fn); }
+}
+
+/* ---------------- Connections ---------------- */
+class WSConn {
+  constructor(base, token, kind, label) {
+    this.base = base.replace(/\/+$/, ''); this.token = token; this.kind = kind; this.label = label;
+    this.id = 0; this.pending = new Map(); this.inIframe = window.parent !== window;
+  }
+  open() {
+    return new Promise((resolve, reject) => {
+      let ws;
+      try { ws = new WebSocket(this.base.replace(/^http/i, 'ws') + '/api/websocket'); }
+      catch (e) { reject(new Error('Invalid address: ' + e.message)); return; }
+      this.ws = ws; let authed = false;
+      ws.onmessage = ev => {
+        const m = JSON.parse(ev.data);
+        if (m.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: this.token }));
+        else if (m.type === 'auth_ok') { authed = true; this.haVersion = m.ha_version; resolve(this); }
+        else if (m.type === 'auth_invalid') reject(new Error(m.message || 'The access token was rejected.'));
+        else if (m.type === 'result' || m.type === 'pong') {
+          const p = this.pending.get(m.id); if (!p) return; this.pending.delete(m.id);
+          if (m.type === 'pong' || m.success) p.res(m.result);
+          else { const e = new Error((m.error && m.error.message) || 'Request failed'); e.code = m.error && m.error.code; p.rej(e); }
+        }
+      };
+      ws.onerror = () => { if (!authed) reject(new Error('Could not reach Home Assistant at that address.')); };
+      ws.onclose = () => {
+        for (const p of this.pending.values()) p.rej(Object.assign(new Error('Connection closed'), { code: 'closed' }));
+        this.pending.clear();
+        if (authed) setConn('Disconnected', 'off');
+      };
+    });
+  }
+  call(msg) {
+    const id = ++this.id;
+    return new Promise((res, rej) => { this.pending.set(id, { res, rej }); this.ws.send(JSON.stringify({ ...msg, id })); });
+  }
+  ping() { return this.call({ type: 'ping' }); }
+}
+
+function connectParent() {
+  try {
+    if (window.parent === window) return null;
+    const ha = window.parent.document.querySelector('home-assistant');
+    const hass = ha && ha.hass;
+    if (!hass || !hass.connection) return null;
+    return {
+      kind: 'session', label: 'Connected via your Home Assistant login', inIframe: true,
+      base: window.parent.location.origin,
+      call: m => hass.connection.sendMessagePromise(m).catch(e => { const err = new Error(e && e.message || 'Request failed'); err.code = e && e.code; throw err; }),
+      ping: () => (hass.connection.ping ? hass.connection.ping() : hass.connection.sendMessagePromise({ type: 'ping' })),
+      parentWin: window.parent,
+    };
+  } catch { return null; }
+}
+
+async function connectStoredLogin() {
+  try {
+    const raw = localStorage.getItem('hassTokens'); if (!raw) return null;
+    const t = JSON.parse(raw); if (!t || !t.hassUrl) return null;
+    let token = t.access_token;
+    if (!token || Date.now() > (t.expires || 0) - 30000) {
+      const body = new URLSearchParams({ grant_type: 'refresh_token', client_id: t.clientId || (location.origin + '/'), refresh_token: t.refresh_token });
+      const r = await fetch(t.hassUrl + '/auth/token', { method: 'POST', body });
+      if (!r.ok) return null;
+      const j = await r.json(); token = j.access_token;
+      t.access_token = token; t.expires = Date.now() + j.expires_in * 1000;
+      try { localStorage.setItem('hassTokens', JSON.stringify(t)); } catch {}
+    }
+    return await new WSConn(t.hassUrl, token, 'session', 'Connected via your Home Assistant login').open();
+  } catch { return null; }
+}
+
+async function connectManual(url, token) {
+  url = (url || '').trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+  if (location.protocol === 'https:' && url.startsWith('http:')) throw new Error('This page is loaded over https, so the browser blocks connections to an http:// Home Assistant address. Open this page from Home Assistant itself instead (see the install notes).');
+  return new WSConn(url, token.trim(), 'token', 'Connected with access token').open();
+}
+
+/* ---------------- Demo data ---------------- */
+function makeDemo() {
+  const now = Date.now(), H = 3600e3, D = 24 * H, iso = a => new Date(now - a).toISOString();
+  const st = (entity_id, state, attributes = {}, age = 4 * 60e3) => ({ entity_id, state: String(state), attributes, last_changed: iso(age), last_updated: iso(age), last_reported: iso(age) });
+  const states = [
+    st('sun.sun', 'below_horizon', { friendly_name: 'Sun' }),
+    st('person.demo', 'home', { friendly_name: 'Demo User' }),
+    st('zone.home', '1', { friendly_name: 'Home' }),
+    st('light.kitchen', 'on', { friendly_name: 'Kitchen Lights' }),
+    st('light.porch', 'unavailable', { friendly_name: 'Porch Light' }),
+    st('light.garage', 'unavailable', { friendly_name: 'Garage Light' }),
+    st('switch.coffee_maker', 'off', { friendly_name: 'Coffee Maker' }),
+    st('sensor.living_room_temperature', '71.2', { friendly_name: 'Living Room Temperature', device_class: 'temperature', unit_of_measurement: '°F' }),
+    st('sensor.bedroom_temperature', '68.0', { friendly_name: 'Bedroom Temperature', device_class: 'temperature', unit_of_measurement: '°F' }, 3 * D),
+    st('sensor.bedroom_humidity', 'unavailable', { friendly_name: 'Bedroom Humidity', device_class: 'humidity' }),
+    st('sensor.front_door_lock_battery', '12', { friendly_name: 'Front Door Lock Battery', device_class: 'battery', unit_of_measurement: '%' }),
+    st('sensor.hallway_motion_battery', '3', { friendly_name: 'Hallway Motion Battery', device_class: 'battery', unit_of_measurement: '%' }),
+    st('sensor.leak_sensor_battery', '88', { friendly_name: 'Leak Sensor Battery', device_class: 'battery', unit_of_measurement: '%' }),
+    st('binary_sensor.kitchen_window_battery', 'on', { friendly_name: 'Kitchen Window Battery', device_class: 'battery' }),
+    st('binary_sensor.hallway_motion', 'off', { friendly_name: 'Hallway Motion', device_class: 'motion' }),
+    st('sensor.old_power_meter', 'unavailable', { friendly_name: 'Old Power Meter', restored: true }),
+    st('weather.home', 'sunny', { friendly_name: 'Home Forecast' }),
+    st('update.home_assistant_core_update', 'on', { friendly_name: 'Home Assistant Core Update', installed_version: '2026.10.4', latest_version: '2026.11.0' }),
+    st('update.mosquitto_broker_update', 'on', { friendly_name: 'Mosquitto broker Update', installed_version: '6.4.1', latest_version: '6.5.0' }),
+    st('update.file_editor_update', 'off', { friendly_name: 'File editor Update', installed_version: '5.8.0', latest_version: '5.8.0' }),
+    st('automation.porch_light_at_sunset', 'on', { friendly_name: 'Porch light at sunset', id: '1001', last_triggered: iso(20 * H) }),
+    st('automation.morning_coffee', 'on', { friendly_name: 'Morning coffee', id: '1002', last_triggered: iso(11 * H) }),
+    st('automation.vacation_mode', 'off', { friendly_name: 'Vacation mode', id: '1003', last_triggered: null }),
+    st('automation.garage_door_alert', 'unavailable', { friendly_name: 'Garage door alert' }),
+    st('automation.water_leak_alert', 'on', { friendly_name: 'Water leak alert', id: '1005', last_triggered: null }),
+    st('script.goodnight', 'off', { friendly_name: 'Goodnight', last_triggered: iso(D) }),
+  ];
+  const plat = { 'light.kitchen': ['hue', 'dev_kitchen'], 'light.porch': ['zha', 'dev_porch'], 'light.garage': ['zha', 'dev_garage'], 'switch.coffee_maker': ['tuya', 'dev_coffee'],
+    'sensor.bedroom_temperature': ['zha', 'dev_bedroom'], 'sensor.bedroom_humidity': ['zha', 'dev_bedroom'], 'sensor.front_door_lock_battery': ['zwave_js', 'dev_lock'],
+    'sensor.hallway_motion_battery': ['zha', 'dev_hall'], 'binary_sensor.hallway_motion': ['zha', 'dev_hall'], 'sensor.leak_sensor_battery': ['zha', 'dev_leak'],
+    'binary_sensor.kitchen_window_battery': ['zha', 'dev_window'], 'sensor.living_room_temperature': ['ecobee', 'dev_thermo'], 'sensor.old_power_meter': ['sense', null], 'weather.home': ['met', null] };
+  const entReg = states.map(s => ({ entity_id: s.entity_id, platform: (plat[s.entity_id] || [dom(s.entity_id)])[0], device_id: (plat[s.entity_id] || [])[1] || null, disabled_by: null, area_id: null }))
+    .concat([{ entity_id: 'sensor.front_door_lock_signal', platform: 'zwave_js', device_id: 'dev_lock', disabled_by: 'integration' }]);
+  const devReg = [
+    { id: 'dev_kitchen', name: 'Kitchen Hue Bulbs', area_id: 'kitchen', manufacturer: 'Signify', model: 'Hue White' },
+    { id: 'dev_porch', name: 'Porch Bulb', area_id: null, manufacturer: 'IKEA', model: 'TRADFRI bulb' },
+    { id: 'dev_garage', name: 'Garage Bulb', area_id: 'garage', manufacturer: 'IKEA', model: 'TRADFRI bulb' },
+    { id: 'dev_coffee', name: 'Coffee Plug', area_id: 'kitchen', manufacturer: 'Tuya', model: 'Smart Plug' },
+    { id: 'dev_bedroom', name: 'Bedroom Climate Sensor', area_id: 'bedroom', manufacturer: 'Aqara', model: 'WSDCGQ11LM' },
+    { id: 'dev_lock', name: 'Front Door Lock', area_id: null, manufacturer: 'Schlage', model: 'BE469' },
+    { id: 'dev_hall', name: 'Hallway Motion', area_id: 'hallway', manufacturer: 'Aqara', model: 'RTCGQ11LM' },
+    { id: 'dev_leak', name: 'Leak Sensor', area_id: null, manufacturer: 'Aqara', model: 'SJCGQ11LM' },
+    { id: 'dev_window', name: 'Kitchen Window', area_id: 'kitchen', manufacturer: 'Aqara', model: 'MCCGQ11LM' },
+    { id: 'dev_thermo', name: 'Thermostat', area_id: 'living_room', manufacturer: 'ecobee', model: 'Premium' },
+  ];
+  const err = c => Object.assign(new Error(c), { code: c });
+  const sup = {
+    '/resolution/info': { unsupported: [], unhealthy: [], issues: [{ type: 'free_space', context: 'system' }], suggestions: [{ type: 'clear_full_backup', context: 'system' }] },
+    '/host/info': { hostname: 'homeassistant', disk_total: 32, disk_used: 28.6, disk_free: 3.4 },
+    '/core/stats': { cpu_percent: 6.4, memory_percent: 58.2 },
+    '/network/info': { host_internet: true, supervisor_internet: true },
+    '/addons': { addons: [
+      { name: 'File editor', slug: 'core_configurator', state: 'started', update_available: false, version: '5.8.0', version_latest: '5.8.0' },
+      { name: 'Mosquitto broker', slug: 'core_mosquitto', state: 'started', update_available: true, version: '6.4.1', version_latest: '6.5.0' },
+      { name: 'Node-RED', slug: 'a0d7b954_nodered', state: 'stopped', update_available: false, version: '19.0.0', version_latest: '19.0.0' },
+      { name: 'Samba share', slug: 'core_samba', state: 'stopped', update_available: false, version: '12.3.2', version_latest: '12.3.2' },
+      { name: 'Check Home Assistant configuration', slug: 'core_check_config', state: 'stopped', update_available: false, version: '3.11.0', version_latest: '3.11.0' } ] },
+    '/addons/a0d7b954_nodered/info': { boot: 'auto', state: 'stopped', watchdog: false },
+    '/addons/core_samba/info': { boot: 'manual', state: 'stopped' },
+    '/addons/core_check_config/info': { boot: 'auto', state: 'stopped', startup: 'once' },
+  };
+  const autoCfg = {
+    'automation.porch_light_at_sunset': { id: '1001', triggers: [{ trigger: 'sun', event: 'sunset' }], actions: [{ action: 'light.turn_on', target: { entity_id: 'light.porch' } }] },
+    'automation.morning_coffee': { id: '1002', triggers: [{ trigger: 'time', at: '06:30' }], actions: [{ action: 'switch.turn_onn', target: { entity_id: 'switch.coffee_maker' } }] },
+    'automation.vacation_mode': { id: '1003', triggers: [{ trigger: 'time', at: '19:00' }], actions: [{ action: 'light.turn_on', target: { entity_id: 'light.kitchen' } }] },
+    'automation.water_leak_alert': { id: '1005', triggers: [{ trigger: 'state', entity_id: ['binary_sensor.basement_leak'], to: 'on' }], actions: [{ action: 'notify.mobile_app_old_phone', data: { message: 'Leak!' } }] },
+  };
+  const lovelace = {
+    'dashboard-main': { views: [{ title: 'Home', path: 'home', cards: [
+      { type: 'entities', entities: ['light.kitchen', 'light.porch', 'sensor.old_thermostat'] },
+      { type: 'custom:mushroom-template-card', entity: 'sensor.living_room_temperature' },
+      { type: 'button', name: 'Weather', tap_action: { action: 'navigate', navigation_path: '/weather/0' } },
+      { type: 'button', name: 'Settings', tap_action: { action: 'navigate', navigation_path: '/dashboard-main/settings' } } ] }] },
+    'weather': { views: [{ title: 'Now', cards: [
+      { type: 'weather-forecast', entity: 'weather.home' },
+      { type: 'custom:clock-weather-card', entity: 'weather.home' },
+      { type: 'button', name: 'Home', tap_action: { action: 'navigate', navigation_path: '/dashboard-main/home' } } ] }] },
+  };
+  const handlers = {
+    ping: () => null,
+    get_config: () => ({ version: '2026.10.4', state: 'RUNNING', safe_mode: false, recovery_mode: false, latitude: 40.0, longitude: -75.0, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      country: 'US', currency: 'USD', internal_url: null, external_url: 'http://myhome.example.org:8123', location_name: 'Home',
+      components: ['hassio', 'backup', 'recorder', 'automation', 'script', 'zha', 'zwave_js', 'hue', 'tuya', 'met', 'lovelace', 'frontend', 'http'] }),
+    get_states: () => states,
+    get_services: () => ({ light: { turn_on: {}, turn_off: {}, toggle: {} }, switch: { turn_on: {}, turn_off: {}, toggle: {} }, notify: { notify: {}, mobile_app_pixel_9: {} }, homeassistant: { restart: {} }, script: { goodnight: {} } }),
+    get_panels: () => ({ lovelace: { component_name: 'lovelace' }, 'dashboard-main': { component_name: 'lovelace' }, weather: { component_name: 'lovelace' }, config: { component_name: 'config' }, history: {}, logbook: {}, map: {}, energy: {}, 'developer-tools': {}, profile: {}, hassio: {} }),
+    'config/entity_registry/list': () => entReg,
+    'config/device_registry/list': () => devReg,
+    'config/area_registry/list': () => ['kitchen', 'garage', 'bedroom', 'hallway', 'living_room'].map(a => ({ area_id: a, name: human(a) })),
+    'config_entries/get': () => [
+      { entry_id: 'e1', domain: 'hue', title: 'Hue Bridge', state: 'loaded', disabled_by: null, source: 'zeroconf' },
+      { entry_id: 'e2', domain: 'zha', title: 'Zigbee (ZHA)', state: 'loaded', disabled_by: null },
+      { entry_id: 'e3', domain: 'zwave_js', title: 'Z-Wave JS', state: 'loaded', disabled_by: null },
+      { entry_id: 'e4', domain: 'tuya', title: 'Tuya', state: 'setup_retry', reason: 'Timed out connecting to the Tuya cloud', disabled_by: null },
+      { entry_id: 'e5', domain: 'nest', title: 'Google Nest', state: 'setup_error', reason: 'Re-authentication required', disabled_by: null },
+      { entry_id: 'e6', domain: 'met', title: 'Home', state: 'loaded', disabled_by: null },
+      { entry_id: 'e7', domain: 'cast', title: 'Google Cast', state: 'not_loaded', disabled_by: 'user' } ],
+    'repairs/list_issues': () => ({ issues: [
+      { domain: 'template', issue_id: 'deprecated_legacy_syntax', severity: 'warning', ignored: false, translation_key: 'deprecated_legacy_template_syntax', breaks_in_ha_version: '2027.2.0' },
+      { domain: 'nest', issue_id: 'reauth', severity: 'error', ignored: false, translation_key: 'reauth_required' },
+      { domain: 'hue', issue_id: 'old', severity: 'warning', ignored: true, translation_key: 'something_ignored' } ] }),
+    'system_log/list': () => [
+      { name: 'homeassistant.components.tuya', message: ['Error communicating with Tuya cloud: timeout'], level: 'ERROR', source: ['components/tuya/__init__.py', 88], timestamp: now / 1000 - 600, count: 42 },
+      { name: 'custom_components.old_weather', message: ['Detected blocking call to open inside the event loop'], level: 'WARNING', source: ['custom_components/old_weather/sensor.py', 51], timestamp: now / 1000 - 3600, count: 3 },
+      { name: 'homeassistant.components.zha', message: ['Device 00:15:8d:00:aa:bb did not respond to command'], level: 'WARNING', source: ['components/zha/entity.py', 210], timestamp: now / 1000 - 900, count: 7 } ],
+    'recorder/info': () => ({ backlog: 0, max_backlog: 65000, migration_in_progress: false, migration_is_live: false, recording: true, thread_running: true }),
+    'backup/info': () => ({ backups: [{ backup_id: 'a1', name: 'Automatic backup 2026.10.4', date: iso(10 * D), agents: { 'hassio.local': {} } }, { backup_id: 'a0', name: 'Automatic backup 2026.10.3', date: iso(17 * D), agents: { 'hassio.local': {} } }],
+      last_attempted_automatic_backup: iso(D), last_completed_automatic_backup: iso(10 * D) }),
+    'backup/config/info': () => ({ config: { automatic_backups_configured: true, schedule: { recurrence: 'daily' } } }),
+    'supervisor/api': m => { if (!(m.endpoint in sup)) { if (/^\/addons\/[^/]+\/info$/.test(m.endpoint)) return { boot: 'auto', state: 'started' }; throw err('not_found'); } return sup[m.endpoint]; },
+    'auth/current_user': () => ({ id: 'u1', name: 'Demo User', is_owner: true, is_admin: true }),
+    'config/auth/list': () => [
+      { id: 'u1', name: 'Demo User', is_owner: true, is_active: true, system_generated: false, group_ids: ['system-admin'] },
+      { id: 'u2', name: 'Wall Tablet', is_owner: false, is_active: true, system_generated: false, group_ids: ['system-admin'] },
+      { id: 'u3', name: 'Guest', is_owner: false, is_active: false, system_generated: false, group_ids: ['system-users'] },
+      { id: 'u4', name: 'Supervisor', is_owner: false, is_active: true, system_generated: true, group_ids: ['system-admin'] } ],
+    'auth/refresh_tokens': () => [
+      { id: 't1', client_name: 'Old dashboard script', type: 'long_lived_access_token', created_at: iso(400 * D), last_used_at: iso(200 * D) },
+      { id: 't2', client_name: 'Weather uploader', type: 'long_lived_access_token', created_at: iso(90 * D), last_used_at: iso(H) },
+      { id: 't3', client_id: 'http://homeassistant.local:8123/', type: 'normal', is_current: true, created_at: iso(30 * D), last_used_at: iso(0) } ],
+    'lovelace/dashboards/list': () => [{ id: 'd1', url_path: 'dashboard-main', title: 'Main', mode: 'storage' }, { id: 'd2', url_path: 'weather', title: 'Weather', mode: 'storage' }],
+    'lovelace/config': m => { if (!m.url_path) throw err('config_not_found'); return lovelace[m.url_path]; },
+    'lovelace/resources': () => [{ id: 'r1', url: '/hacsfiles/lovelace-mushroom/mushroom.js', type: 'module' }, { id: 'r2', url: '/local/old-gauge-card.js', type: 'module' }],
+    'trace/list': m => m.domain === 'automation' ? [
+      { domain: 'automation', item_id: '1002', run_id: 'r1', state: 'stopped', script_execution: 'error', error: 'Action switch.turn_onn not found', timestamp: { start: iso(11 * H) } },
+      { domain: 'automation', item_id: '1001', run_id: 'r2', state: 'stopped', script_execution: 'finished', timestamp: { start: iso(20 * H) } } ] : [],
+    'automation/config': m => { const c = autoCfg[m.entity_id]; if (!c) throw err('not_found'); return { config: c }; },
+    'script/config': m => { if (m.entity_id !== 'script.goodnight') throw err('not_found'); return { config: { sequence: [{ action: 'light.turn_off', target: { entity_id: ['light.kitchen', 'light.living_room_lamp'] } }] } }; },
+  };
+  return {
+    kind: 'demo', label: 'Demo mode — sample data', base: '', inIframe: false,
+    call(msg) { return sleep(30 + Math.random() * 90).then(() => { const h = handlers[msg.type]; if (!h) throw err('unknown_command'); return JSON.parse(JSON.stringify(h(msg) ?? null)); }); },
+    ping() { return sleep(20 + Math.random() * 25); },
+    fetchStatus: async url => (url.includes('old-gauge') ? 404 : 200),
+  };
+}
+
+/* ---------------- Check context ---------------- */
+const DEFAULTS = { battery: 20, staleHours: 24, backupDays: 7, tokenDays: 90, diskPct: 85, memPct: 90 };
+const TH_LABELS = { battery: 'Low battery below (%)', staleHours: 'Sensor considered stale after (hours)', backupDays: 'Backup too old after (days)', tokenDays: 'Unused token after (days)', diskPct: 'Disk usage warning at (%)', memPct: 'Memory usage warning at (%)' };
+
+function makeCtx(conn, settings) {
+  const cache = new Map();
+  const memo = (k, fn) => { if (!cache.has(k)) cache.set(k, Promise.resolve().then(fn)); return cache.get(k); };
+  const call = m => conn.call(m);
+  const ctx = {
+    conn, settings, call,
+    config: () => memo('config', () => call({ type: 'get_config' })),
+    states: () => memo('states', () => call({ type: 'get_states' })),
+    services: () => memo('services', () => call({ type: 'get_services' })),
+    panels: () => memo('panels', () => call({ type: 'get_panels' })),
+    user: () => memo('user', () => call({ type: 'auth/current_user' })),
+    entReg: () => memo('entReg', () => call({ type: 'config/entity_registry/list' }).catch(() => [])),
+    devReg: () => memo('devReg', () => call({ type: 'config/device_registry/list' }).catch(() => [])),
+    areaReg: () => memo('areaReg', () => call({ type: 'config/area_registry/list' }).catch(() => [])),
+    entries: () => memo('entries', () => call({ type: 'config_entries/get' })),
+    sup: ep => memo('sup:' + ep, () => call({ type: 'supervisor/api', endpoint: ep, method: 'get' })),
+    supervised: async () => ((await ctx.config()).components || []).includes('hassio'),
+    stateMap: () => memo('stateMap', async () => new Map((await ctx.states()).map(s => [s.entity_id, s]))),
+    regMap: () => memo('regMap', async () => new Map((await ctx.entReg()).map(e => [e.entity_id, e]))),
+    devMap: () => memo('devMap', async () => new Map((await ctx.devReg()).map(d => [d.id, d]))),
+    platformOf: async id => { const r = (await ctx.regMap()).get(id); return (r && r.platform) || dom(id); },
+    dashboards: () => memo('dash', async () => {
+      let list = [];
+      try { list = await call({ type: 'lovelace/dashboards/list' }); } catch {}
+      const all = [{ url_path: null, title: 'Overview (default)' }, ...list.map(d => ({ url_path: d.url_path, title: d.title || d.url_path, mode: d.mode }))];
+      await pool(all, 4, async d => { try { d.config = await call({ type: 'lovelace/config', url_path: d.url_path }); } catch (e) { d.error = e; } });
+      return all;
+    }),
+    fetchStatus: async url => {
+      if (conn.fetchStatus) return conn.fetchStatus(url);
+      const abs = new URL(url, conn.base || location.href);
+      if (abs.origin !== location.origin) return null; // can't verify cross-origin
+      try { const r = await fetch(abs.href, { cache: 'no-store' }); return r.status; } catch { return 0; }
+    },
+  };
+  return ctx;
+}
+
+const R = {};
+['pass', 'warn', 'fail', 'info', 'skip'].forEach(s => { R[s] = (summary, o = {}) => ({ status: s, summary, ...o }); });
+const entItem = (s, extra, level) => ({ label: nm(s), sub: s.entity_id + (extra ? ' · ' + extra : ''), link: '/history?entity_id=' + encodeURIComponent(s.entity_id), level });
+// Where to edit an automation or script. Scripts edit by object id; automations need an "id" (YAML-only ones without one have no editor).
+const editLink = s => dom(s.entity_id) === 'script' ? '/config/script/edit/' + s.entity_id.split('.')[1]
+  : (s.attributes.id != null ? '/config/automation/edit/' + encodeURIComponent(s.attributes.id) : null);
+const yamlNote = s => (editLink(s) ? '' : ' · YAML only (no "id"), so edit it in your YAML files');
+const notSupervised = () => R.skip("Your installation doesn't use the Supervisor (Container or Core install), so this check doesn't apply.");
+
+/* ---------------- Checks ---------------- */
+const CATS = [
+  { id: 'core', name: 'System & Core', icon: '⚙️', desc: 'Is Home Assistant running normally and up to date?' },
+  { id: 'integrations', name: 'Integrations', icon: '🧩', desc: 'Are your connected services and hubs loading?' },
+  { id: 'health', name: 'Repairs & Logs', icon: '🩺', desc: 'Problems Home Assistant has already noticed.' },
+  { id: 'entities', name: 'Entities & Devices', icon: '💡', desc: 'Offline devices, low batteries, stale sensors.' },
+  { id: 'automations', name: 'Automations & Scripts', icon: '🤖', desc: 'Broken, failing or misconfigured automations.' },
+  { id: 'dashboards', name: 'Dashboards', icon: '📊', desc: 'Missing entities, broken links and custom cards.' },
+  { id: 'data', name: 'Database & Backups', icon: '💾', desc: 'History recording and how safe your backups are.' },
+  { id: 'host', name: 'Host & Apps', icon: '🖥️', desc: 'Disk, memory, internet and apps (Home Assistant OS and Supervised installs).' },
+  { id: 'security', name: 'Users & Security', icon: '🔒', desc: 'Accounts, access tokens and remote access.' },
+];
+const C = [];
+const def = o => C.push(o);
+
+/* System & Core */
+def({ id: 'core.connection', cat: 'core', level: 'basic', quick: true, title: 'Response time',
+  desc: 'How quickly Home Assistant answers this page.',
+  explain: 'Slow responses usually mean the machine is overloaded or the network is struggling.',
+  fix: 'Check memory and CPU under Host & Apps, restart Home Assistant, or try again from a device on your home network.',
+  async run(ctx) {
+    const t = [];
+    for (let i = 0; i < 3; i++) { const a = performance.now(); await ctx.conn.ping(); t.push(performance.now() - a); }
+    const avg = Math.round(t.reduce((a, b) => a + b, 0) / t.length);
+    const s = `Average response ${avg} ms`;
+    return avg < 250 ? R.pass(s) : avg < 1000 ? R.warn(s + ' (slower than expected)') : R.fail(s + ' (very slow)');
+  } });
+def({ id: 'core.status', cat: 'core', level: 'basic', quick: true, title: 'Core status',
+  desc: 'Checks for safe mode, recovery mode or an unfinished startup.',
+  explain: 'Safe mode turns off custom integrations. Recovery mode means your configuration failed to load.',
+  fix: 'Open Settings → System → Logs, fix the error at the top, then restart Home Assistant normally.',
+  async run(ctx) {
+    const c = await ctx.config();
+    if (c.recovery_mode) return R.fail('Running in recovery mode: your configuration failed to load.');
+    if (c.safe_mode) return R.fail('Running in safe mode: custom integrations are turned off.');
+    if (c.state && c.state !== 'RUNNING') return R.warn(`Home Assistant is "${c.state}". It may still be starting up.`);
+    return R.pass(`Home Assistant ${c.version} is running normally`);
+  } });
+def({ id: 'core.updates', cat: 'core', level: 'basic', quick: true, title: 'Available updates',
+  desc: 'Core, OS, app, device firmware and HACS updates waiting to install.',
+  explain: 'Updates bring bug fixes and security patches. Falling far behind makes later upgrades harder.',
+  fix: 'Go to Settings → Updates. Read the release notes for Core updates (look for "breaking changes") and make a backup first.',
+  async run(ctx) {
+    const ups = (await ctx.states()).filter(s => dom(s.entity_id) === 'update' && s.state === 'on');
+    if (!ups.length) return R.pass('Everything is up to date');
+    const items = ups.map(s => ({ label: nm(s).replace(/ update$/i, ''), sub: `${s.attributes.installed_version ?? '?'} → ${s.attributes.latest_version ?? '?'}`, link: '/config/updates', level: /core|operating system|supervisor/i.test(nm(s)) ? 'warn' : 'info' }));
+    return R.warn(`${pl(ups.length, 'update')} available`, { items });
+  } });
+def({ id: 'core.config', cat: 'core', level: 'basic', title: 'Basic settings',
+  desc: 'Home location, time zone, country and network URLs.',
+  explain: 'Sunrise and sunset, weather, zones and scheduled automations all depend on these settings.',
+  fix: 'Set these under Settings → System → General and Settings → System → Network.',
+  async run(ctx) {
+    const c = await ctx.config(), items = [];
+    if (!c.latitude && !c.longitude) items.push({ label: 'Home location is not set', sub: 'Sun, weather and zone features need it', link: '/config/general', level: 'warn' });
+    const btz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (c.time_zone && btz && c.time_zone !== btz) items.push({ label: `Time zone is ${c.time_zone}, but this device uses ${btz}`, sub: 'Fine if you are travelling. Otherwise, schedules may run at the wrong time.', link: '/config/general', level: 'info' });
+    if (!c.time_zone) items.push({ label: 'Time zone is not set', link: '/config/general', level: 'warn' });
+    if (!c.country) items.push({ label: 'Country is not set', link: '/config/general', level: 'warn' });
+    if (!c.internal_url) items.push({ label: 'Local network URL is set to automatic', sub: 'Setting it explicitly helps the mobile app and notifications', link: '/config/network', level: 'info' });
+    const w = items.filter(i => i.level === 'warn');
+    if (w.length) return R.warn(`${pl(w.length, 'setting')} need attention`, { items });
+    if (items.length) return R.info('Core settings look fine, with notes', { items });
+    return R.pass('Location, time zone and region are all set');
+  } });
+def({ id: 'core.inventory', cat: 'core', level: 'basic', title: 'System inventory',
+  desc: 'Counts of entities, devices, integrations and areas.',
+  explain: 'An overview of what Home Assistant manages. Useful when you report a problem or compare runs.',
+  fix: 'Nothing to fix. This is for information only.',
+  async run(ctx) {
+    const [s, d, a] = await Promise.all([ctx.states(), ctx.devReg(), ctx.areaReg()]);
+    let e = []; try { e = await ctx.entries(); } catch {}
+    const by = {}; s.forEach(x => { const k = dom(x.entity_id); by[k] = (by[k] || 0) + 1; });
+    const items = Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, 15).map(([k, v]) => ({ label: k, sub: pl(v, 'entity', 'entities') }));
+    return R.info(`${pl(s.length, 'entity', 'entities')}, ${pl(d.length, 'device')}, ${pl(e.length, 'integration')}, ${pl(a.length, 'area')}`, { items });
+  } });
+
+/* Integrations */
+def({ id: 'integrations.failed', cat: 'integrations', level: 'basic', quick: true, title: 'Integrations failing to load',
+  desc: 'Integrations stuck retrying, failing to set up or needing re-login.',
+  explain: 'When an integration fails, every device and entity it provides stops working.',
+  fix: 'Open the integration under Settings → Devices & services. Look for a "Reconfigure" or "Re-authenticate" button, check the device or cloud account is reachable, then select "Reload".',
+  async run(ctx) {
+    const e = await ctx.entries();
+    const LABEL = { setup_error: 'Failed to set up', setup_retry: 'Retrying setup', migration_error: 'Migration failed', failed_unload: 'Failed to unload', not_loaded: 'Not loaded' };
+    const bad = e.filter(x => !x.disabled_by && x.source !== 'ignore' && LABEL[x.state]);
+    if (!bad.length) return R.pass(`All ${pl(e.filter(x => !x.disabled_by).length, 'integration')} loaded`);
+    const hard = bad.filter(x => ['setup_error', 'migration_error', 'failed_unload'].includes(x.state));
+    const items = bad.map(x => ({ label: `${x.title} (${x.domain})`, sub: LABEL[x.state] + (x.reason ? ` — ${x.reason}` : ''), link: '/config/integrations/integration/' + x.domain, level: hard.includes(x) ? 'fail' : 'warn' }));
+    return (hard.length ? R.fail : R.warn)(`${pl(bad.length, 'integration')} not working`, { items, raw: bad });
+  } });
+def({ id: 'integrations.disabled', cat: 'integrations', level: 'advanced', title: 'Disabled integrations',
+  desc: 'Integrations that are configured but turned off.',
+  explain: 'Disabled integrations are harmless. You may want to delete ones you no longer use.',
+  fix: 'Settings → Devices & services → filter by disabled, then re-enable or delete.',
+  async run(ctx) {
+    const d = (await ctx.entries()).filter(x => x.disabled_by);
+    if (!d.length) return R.pass('No disabled integrations');
+    return R.info(`${pl(d.length, 'integration')} disabled`, { items: d.map(x => ({ label: `${x.title} (${x.domain})`, sub: 'Disabled by ' + x.disabled_by, link: '/config/integrations/integration/' + x.domain })) });
+  } });
+
+/* Repairs & Logs */
+def({ id: 'health.repairs', cat: 'health', level: 'basic', quick: true, title: 'Open repairs',
+  desc: 'Issues Home Assistant has flagged in Settings → Repairs.',
+  explain: 'Repairs are problems Home Assistant found itself, like deprecated settings that will stop working in a future version.',
+  fix: 'Go to Settings → System → Repairs. Many issues have a one-click fix. Others explain what to change.',
+  async run(ctx) {
+    const r = await ctx.call({ type: 'repairs/list_issues' });
+    const act = (r.issues || []).filter(i => !i.ignored && !i.dismissed_version);
+    if (!act.length) return R.pass('No open repairs');
+    const sev = { critical: 'fail', error: 'fail', warning: 'warn' };
+    const items = act.map(i => ({ label: human(i.translation_key || i.issue_id), sub: `${i.domain} · ${i.severity}${i.breaks_in_ha_version ? ' · stops working in ' + i.breaks_in_ha_version : ''}${i.is_fixable ? ' · has a fix' : ''}`, link: '/config/repairs', level: sev[i.severity] || 'info' }));
+    return (act.some(i => sev[i.severity] === 'fail') ? R.fail : R.warn)(`${pl(act.length, 'open repair')}`, { items, raw: act });
+  } });
+def({ id: 'health.logs', cat: 'health', level: 'basic', quick: true, title: 'Errors & warnings in the log',
+  desc: 'Errors and warnings logged since the last restart.',
+  explain: 'Errors usually point to an integration that cannot reach a device or service. Messages from "custom_components" come from custom integrations you installed, often through HACS.',
+  fix: 'Open Settings → System → Logs and select an entry to see the full detail. Fix or update the integration named in the message, or remove custom integrations you no longer use.',
+  async run(ctx) {
+    const log = await ctx.call({ type: 'system_log/list' });
+    const errs = log.filter(l => ['ERROR', 'CRITICAL'].includes(l.level)), warns = log.filter(l => l.level === 'WARNING');
+    const items = [...errs, ...warns].sort((a, b) => (b.level !== a.level ? (a.level === 'WARNING' ? 1 : -1) : (b.count || 1) - (a.count || 1))).map(l => ({
+      label: trunc((l.message || [])[0] || l.name, 180),
+      sub: `${l.level} · ${l.name}${String(l.name).startsWith('custom_components') ? ' (custom)' : ''} · ×${l.count || 1} · last ${ago((l.timestamp || 0) * 1000)}`,
+      link: '/config/logs', level: l.level === 'WARNING' ? 'warn' : 'fail' }));
+    const s = `${pl(errs.length, 'error type')} and ${pl(warns.length, 'warning type')} since the last restart`;
+    if (errs.some(l => l.level === 'CRITICAL')) return R.fail(s, { items });
+    if (errs.length) return R.warn(s, { items });
+    if (warns.length) return R.info(s, { items });
+    return R.pass('No errors or warnings logged');
+  } });
+
+/* Entities & Devices */
+def({ id: 'entities.unavailable', cat: 'entities', level: 'basic', quick: true, title: 'Unavailable entities',
+  desc: 'Entities Home Assistant currently cannot reach.',
+  explain: 'An unavailable entity is usually a device that is unplugged, out of range, has a dead battery, or belongs to an integration that failed to load.',
+  fix: 'Start with the integration that has the most unavailable entities. Check its devices have power and are in range, then reload the integration. Remove entities for devices you no longer own.',
+  async run(ctx) {
+    const states = await ctx.states();
+    const un = states.filter(s => s.state === 'unavailable' && !s.attributes.restored);
+    if (!un.length) return R.pass(`All ${states.length} entities are reachable`);
+    const by = {};
+    for (const s of un) { const p = await ctx.platformOf(s.entity_id); (by[p] = by[p] || []).push(s); }
+    const groups = Object.entries(by).sort((a, b) => b[1].length - a[1].length);
+    const items = groups.flatMap(([p, list]) => list.map(s => entItem(s, p, 'warn')));
+    const pct = un.length / states.length;
+    return (pct > 0.2 ? R.fail : R.warn)(`${pl(un.length, 'entity', 'entities')} unavailable: ` + groups.slice(0, 4).map(([p, l]) => `${p} (${l.length})`).join(', ') + (groups.length > 4 ? '…' : ''), { items });
+  } });
+def({ id: 'entities.devices_down', cat: 'entities', level: 'basic', title: 'Offline devices',
+  desc: 'Devices where every entity is unavailable.',
+  explain: 'When all of a device\'s entities are unavailable, the device itself is likely offline.',
+  fix: 'Check power and batteries. For Zigbee or Z-Wave devices, move them closer to the hub or add a mains-powered device nearby to act as a repeater. Re-pair the device if needed.',
+  async run(ctx) {
+    const [sm, reg, devs] = await Promise.all([ctx.stateMap(), ctx.entReg(), ctx.devReg()]);
+    const per = new Map();
+    for (const e of reg) { if (!e.device_id || e.disabled_by) continue; const s = sm.get(e.entity_id); if (!s) continue; const a = per.get(e.device_id) || []; a.push(s); per.set(e.device_id, a); }
+    const down = devs.filter(d => !d.disabled_by && per.has(d.id) && per.get(d.id).every(s => s.state === 'unavailable'));
+    if (!down.length) return R.pass('No devices are fully offline');
+    return R.warn(`${pl(down.length, 'device')} appear offline`, { items: down.map(d => ({ label: d.name_by_user || d.name, sub: [d.manufacturer, d.model].filter(Boolean).join(' ') + ` · ${pl(per.get(d.id).length, 'entity', 'entities')}`, link: '/config/devices/device/' + d.id, level: 'warn' })) });
+  } });
+def({ id: 'entities.battery', cat: 'entities', level: 'basic', quick: true, title: 'Low batteries',
+  desc: 'Battery-powered devices running low.',
+  explain: 'Devices with a dead battery stop reporting, so motion, door and leak alerts quietly stop working.',
+  fix: 'Replace the batteries in the devices listed, starting with the lowest.',
+  async run(ctx) {
+    const thr = ctx.settings.battery, low = [];
+    for (const s of await ctx.states()) {
+      if (s.attributes.device_class !== 'battery') continue;
+      if (dom(s.entity_id) === 'sensor') { const v = parseFloat(s.state); if (!isNaN(v) && v < thr) low.push({ s, v }); }
+      else if (dom(s.entity_id) === 'binary_sensor' && s.state === 'on') low.push({ s, v: null });
+    }
+    if (!low.length) return R.pass(`No batteries below ${thr}%`);
+    low.sort((a, b) => (a.v ?? 999) - (b.v ?? 999));
+    const crit = low.filter(x => x.v != null && x.v <= 5);
+    return (crit.length ? R.fail : R.warn)(`${pl(low.length, 'battery', 'batteries')} low${crit.length ? `, ${crit.length} almost empty` : ''}`, { items: low.map(x => entItem(x.s, x.v != null ? x.v + '%' : 'reports low', x.v != null && x.v <= 5 ? 'fail' : 'warn')) });
+  } });
+def({ id: 'entities.stale', cat: 'entities', level: 'basic', title: 'Stale sensors',
+  desc: "Temperature, humidity and similar sensors that haven't reported recently.",
+  explain: 'These sensors normally report often. A long silence usually means the device lost its connection while Home Assistant still shows the last value.',
+  fix: 'Check the device\'s battery and signal. Re-pair it or reload its integration if needed.',
+  async run(ctx) {
+    const cls = ['temperature', 'humidity', 'pressure', 'atmospheric_pressure', 'illuminance', 'carbon_dioxide', 'pm25', 'voltage'];
+    const cut = Date.now() - ctx.settings.staleHours * 3600e3;
+    const stale = (await ctx.states()).filter(s => ((dom(s.entity_id) === 'sensor' && cls.includes(s.attributes.device_class)) || dom(s.entity_id) === 'weather')
+      && !['unavailable', 'unknown'].includes(s.state) && Date.parse(s.last_reported || s.last_updated) < cut);
+    if (!stale.length) return R.pass(`All environment sensors reported within ${ctx.settings.staleHours} h`);
+    return R.warn(`${pl(stale.length, 'sensor')} silent for over ${ctx.settings.staleHours} h`, { items: stale.map(s => entItem(s, 'last report ' + ago(s.last_reported || s.last_updated), 'warn')) });
+  } });
+def({ id: 'entities.orphaned', cat: 'entities', level: 'advanced', title: 'Orphaned entities',
+  desc: 'Entities still registered, but no longer provided by any integration.',
+  explain: 'These are leftovers from removed devices or integrations. They clutter lists and can break automations that still use them.',
+  fix: 'Settings → Entities, filter by "Not provided" (or select them), and delete the ones you no longer need.',
+  async run(ctx) {
+    const o = (await ctx.states()).filter(s => s.attributes.restored);
+    if (!o.length) return R.pass('No orphaned entities');
+    return R.warn(`${pl(o.length, 'orphaned entity', 'orphaned entities')}`, { items: o.map(s => ({ ...entItem(s, null, 'warn'), link: '/config/entities' })) });
+  } });
+def({ id: 'entities.unknown', cat: 'entities', level: 'advanced', title: 'Entities with unknown state',
+  desc: 'Entities reporting "unknown". Often normal, sometimes a sign of trouble.',
+  explain: '"Unknown" means the integration is connected but has no value yet. That is normal for some entities, and suspicious for sensors that should always have a reading.',
+  fix: 'Review the sensors listed. Template sensors showing "unknown" often have an error in their template.',
+  async run(ctx) {
+    const skip = ['button', 'scene', 'event', 'input_button', 'notify', 'conversation', 'tts', 'stt', 'wake_word', 'image', 'text', 'assist_satellite', 'select', 'number', 'update'];
+    const u = (await ctx.states()).filter(s => s.state === 'unknown' && !skip.includes(dom(s.entity_id)) && s.attributes.device_class !== 'timestamp');
+    if (!u.length) return R.pass('No unexpected unknown states');
+    return R.info(`${pl(u.length, 'entity', 'entities')} in unknown state`, { items: u.map(s => entItem(s)) });
+  } });
+def({ id: 'entities.no_area', cat: 'entities', level: 'basic', title: 'Devices without an area',
+  desc: 'Devices not assigned to a room.',
+  explain: 'Areas make dashboards, voice commands ("turn off the kitchen") and automations easier.',
+  fix: 'Open each device under Settings → Devices and pick an area.',
+  async run(ctx) {
+    const d = (await ctx.devReg()).filter(x => !x.area_id && !x.disabled_by && x.entry_type !== 'service');
+    if (!d.length) return R.pass('Every device has an area');
+    return R.info(`${pl(d.length, 'device')} without an area`, { items: d.map(x => ({ label: x.name_by_user || x.name || x.id, sub: [x.manufacturer, x.model].filter(Boolean).join(' '), link: '/config/devices/device/' + x.id })) });
+  } });
+def({ id: 'entities.duplicates', cat: 'entities', level: 'advanced', title: 'Duplicate names',
+  desc: 'Different entities sharing the same display name.',
+  explain: 'Duplicate names make dashboards, voice control and the logbook confusing.',
+  fix: 'Rename one of each pair under Settings → Entities.',
+  async run(ctx) {
+    const by = {};
+    (await ctx.states()).forEach(s => { const n = nm(s).toLowerCase(); (by[n] = by[n] || []).push(s); });
+    const d = Object.values(by).filter(l => l.length > 1);
+    if (!d.length) return R.pass('No duplicate names');
+    return R.info(`${pl(d.length, 'name')} used more than once`, { items: d.map(l => ({ label: nm(l[0]), sub: l.map(s => s.entity_id).join(', ') })) });
+  } });
+
+/* Automations & Scripts */
+def({ id: 'automations.unavailable', cat: 'automations', level: 'basic', quick: true, title: 'Broken automations',
+  desc: "Automations that couldn't load because of a configuration error.",
+  explain: 'An unavailable automation never runs. This usually comes from a typo or an option that changed in an update.',
+  fix: 'Open the automation in Settings → Automations & scenes. The editor shows the error. Correct it and save.',
+  async run(ctx) {
+    const b = (await ctx.states()).filter(s => ['automation', 'script'].includes(dom(s.entity_id)) && s.state === 'unavailable');
+    if (!b.length) return R.pass('All automations and scripts loaded');
+    return R.fail(`${pl(b.length, 'automation or script', 'automations or scripts')} failed to load`, { items: b.map(s => ({ ...entItem(s, null, 'fail'), link: '/config/automation/dashboard' })) });
+  } });
+def({ id: 'automations.errors', cat: 'automations', level: 'basic', quick: true, title: 'Recent run errors',
+  desc: 'Automations and scripts whose recent runs stopped with an error.',
+  explain: 'The automation started but hit an error, for example a device that was offline or an action that no longer exists.',
+  fix: 'Open the automation and select "Traces" (top right) to see exactly which step failed.',
+  async run(ctx) {
+    const states = await ctx.states(), out = [];
+    for (const d of ['automation', 'script']) {
+      let tr = []; try { tr = await ctx.call({ type: 'trace/list', domain: d }); } catch (e) { if (d === 'automation') throw e; }
+      const latest = {};
+      for (const t of tr) { if (!(t.error || t.script_execution === 'error')) continue; const k = t.item_id; if (!latest[k] || (t.timestamp?.start || '') > (latest[k].timestamp?.start || '')) latest[k] = t; }
+      for (const [id, t] of Object.entries(latest)) {
+        const s = d === 'automation' ? states.find(x => dom(x.entity_id) === 'automation' && String(x.attributes.id) === String(id)) : states.find(x => x.entity_id === 'script.' + id);
+        out.push({ label: s ? nm(s) : `${d} ${id}`, sub: `${trunc(t.error || 'Error', 160)} · ${ago(t.timestamp && t.timestamp.start)}`, link: d === 'automation' ? `/config/automation/trace/${id}` : `/config/script/trace/${id}`, level: 'warn' });
+      }
+    }
+    if (!out.length) return R.pass('No errors in recent runs');
+    return R.warn(`${pl(out.length, 'automation or script', 'automations or scripts')} errored recently`, { items: out });
+  } });
+def({ id: 'automations.refs', cat: 'automations', level: 'advanced', title: 'Missing entities & actions',
+  desc: "Automations and scripts that refer to entities, devices or actions that don't exist.",
+  explain: 'When a device is renamed or removed, automations that still use the old name stop working, often silently.',
+  fix: 'Open each automation listed and replace the missing entity or action. The editor highlights unknown entities.',
+  async run(ctx) {
+    const [states, sm, rm, dm] = await Promise.all([ctx.states(), ctx.stateMap(), ctx.regMap(), ctx.devMap()]);
+    let svc = null; try { svc = await ctx.services(); } catch {}
+    const targets = states.filter(s => ['automation', 'script'].includes(dom(s.entity_id)) && s.state !== 'unavailable');
+    const items = [];
+    await pool(targets, 6, async s => {
+      const r = await ctx.call({ type: dom(s.entity_id) + '/config', entity_id: s.entity_id });
+      const miss = new Set();
+      walk(r && r.config, (k, v) => {
+        if (k === 'entity_id' || k === 'entity') (Array.isArray(v) ? v : [v]).forEach(x => { if (typeof x === 'string' && ENTITY_RE.test(x) && !sm.has(x)) miss.add(`entity ${x}${rm.has(x) && rm.get(x).disabled_by ? ' (disabled)' : ''}`); });
+        if (k === 'device_id') (Array.isArray(v) ? v : [v]).forEach(x => { if (typeof x === 'string' && !x.includes('{') && dm.size && !dm.has(x)) miss.add('device ' + x); });
+        if ((k === 'action' || k === 'service') && svc && typeof v === 'string' && ENTITY_RE.test(v)) { const [d, n] = v.split('.'); if (!(svc[d] && svc[d][n])) miss.add('action ' + v); }
+      });
+      if (miss.size) items.push({ label: nm(s), sub: [...miss].join(', ') + yamlNote(s), link: editLink(s), level: 'warn' });
+    });
+    if (!items.length) return R.pass(`Checked ${pl(targets.length, 'automation/script', 'automations/scripts')}: all references exist`);
+    return R.warn(`${pl(items.length, 'automation/script', 'automations/scripts')} use things that don't exist`, { items });
+  } });
+def({ id: 'automations.off', cat: 'automations', level: 'basic', title: 'Turned-off automations',
+  desc: 'Automations that are switched off.',
+  explain: "Turned-off automations won't run. That's fine if it's on purpose, but easy to forget.",
+  fix: 'Turn them back on in Settings → Automations & scenes, or delete ones you no longer need.',
+  async run(ctx) {
+    const o = (await ctx.states()).filter(s => dom(s.entity_id) === 'automation' && s.state === 'off');
+    if (!o.length) return R.pass('All automations are on');
+    return R.info(`${pl(o.length, 'automation')} turned off`, { items: o.map(s => ({ ...entItem(s, 'last ran ' + ago(s.attributes.last_triggered) + yamlNote(s)), link: editLink(s) })) });
+  } });
+def({ id: 'automations.never', cat: 'automations', level: 'advanced', title: 'Never-triggered automations',
+  desc: 'Enabled automations with no recorded run.',
+  explain: "Either the automation is brand new or waiting for a rare event, or its trigger can never fire (for example it watches an entity that doesn't exist).",
+  fix: 'Review the triggers. Use "Run actions" in the editor to test, or check Developer tools → States for the trigger entity.',
+  async run(ctx) {
+    const n = (await ctx.states()).filter(s => dom(s.entity_id) === 'automation' && s.state === 'on' && !s.attributes.last_triggered);
+    if (!n.length) return R.pass('Every enabled automation has run at least once');
+    return R.info(`${pl(n.length, 'automation')} never triggered`, { items: n.map(s => ({ ...entItem(s, yamlNote(s).slice(3) || null), link: editLink(s) })) });
+  } });
+
+/* Dashboards */
+def({ id: 'dashboards.load', cat: 'dashboards', level: 'basic', title: 'Dashboards load',
+  desc: 'Every dashboard configuration can be read.',
+  explain: "A dashboard that won't load shows an error or a blank screen on your wall tablet or phone.",
+  fix: 'Open the dashboard, select ⋮ → Edit → Raw configuration editor, and look for the highlighted error.',
+  async run(ctx) {
+    const ds = await ctx.dashboards(), items = [];
+    for (const d of ds) {
+      if (d.error && d.error.code === 'config_not_found') items.push({ label: d.title, sub: 'Auto-generated (not customised)', level: 'info' });
+      else if (d.error) items.push({ label: d.title, sub: 'Failed to load: ' + d.error.message, link: '/' + (d.url_path || 'lovelace'), level: 'fail' });
+      else items.push({ label: d.title, sub: d.config && d.config.strategy ? 'Strategy dashboard' : `${pl((d.config && d.config.views || []).length, 'view')}`, link: '/' + (d.url_path || 'lovelace') });
+    }
+    const f = items.filter(i => i.level === 'fail');
+    if (f.length) return R.fail(`${pl(f.length, 'dashboard')} failed to load`, { items });
+    return R.pass(`${pl(ds.length, 'dashboard')} loaded`, { items });
+  } });
+def({ id: 'dashboards.entities', cat: 'dashboards', level: 'basic', title: 'Missing entities on dashboards',
+  desc: "Cards showing entities that don't exist anymore.",
+  explain: 'These cards show "Entity not available" warnings, usually after a device was renamed or removed.',
+  fix: 'Edit the dashboard, find the cards listed, and choose the new entity or remove the card.',
+  async run(ctx) {
+    const [ds, sm, rm] = await Promise.all([ctx.dashboards(), ctx.stateMap(), ctx.regMap()]);
+    const items = []; let total = 0;
+    for (const d of ds) {
+      if (!d.config || d.config.strategy) continue;
+      const refs = new Set();
+      walk(d.config, (k, v) => {
+        if (['entity', 'entity_id', 'camera_image'].includes(k) && typeof v === 'string') refs.add(v);
+        if ((k === 'entities' || k === 'entity_id') && Array.isArray(v)) v.forEach(x => typeof x === 'string' && refs.add(x));
+      });
+      const miss = [...refs].filter(r => ENTITY_RE.test(r) && !sm.has(r));
+      total += refs.size;
+      miss.forEach(m => items.push({ label: m + (rm.has(m) && rm.get(m).disabled_by ? ' (disabled)' : ''), sub: 'on dashboard: ' + d.title, link: '/' + (d.url_path || 'lovelace'), level: 'warn' }));
+    }
+    if (!items.length) return R.pass(`All ${total} entity references on dashboards exist`);
+    return R.warn(`${pl(items.length, 'missing entity', 'missing entities')} on dashboards`, { items });
+  } });
+def({ id: 'dashboards.navigation', cat: 'dashboards', level: 'basic', title: 'Broken navigation buttons',
+  desc: "Buttons that navigate to dashboards or views that don't exist.",
+  explain: 'Buttons such as "Home" or "Weather" that point to a missing page lead to a blank screen.',
+  fix: 'Edit the button\'s tap action. Use the path shown in your browser address bar when you open the target view (for example /my-dashboard/home).',
+  async run(ctx) {
+    const ds = await ctx.dashboards();
+    let panels = {}; try { panels = await ctx.panels(); } catch {}
+    const byPath = new Map(ds.map(d => [d.url_path || 'lovelace', d]));
+    const viewOk = (d, v) => !d || !d.config || !Array.isArray(d.config.views) || d.config.views.some((x, i) => x.path === v || String(i) === v);
+    const items = []; let n = 0;
+    for (const d of ds) {
+      if (!d.config) continue;
+      const navs = new Set();
+      walk(d.config, (k, v) => { if (k === 'navigation_path' && typeof v === 'string' && !v.includes('{')) navs.add(v); });
+      for (const nav of navs) {
+        n++;
+        const clean = nav.split(/[?#]/)[0]; if (!clean) continue;
+        let problem = null;
+        if (!clean.startsWith('/')) { if (!viewOk(d, clean.split('/')[0])) problem = `view "${clean}" not found on this dashboard`; }
+        else {
+          const [, p, v] = clean.split('/');
+          if (Object.keys(panels).length && !(p in panels)) problem = `no dashboard or page at /${p}`;
+          else if (v && byPath.has(p) && !viewOk(byPath.get(p), v)) problem = `dashboard /${p} has no view "${v}"`;
+        }
+        if (problem) items.push({ label: nav, sub: `${problem} · used on ${d.title}`, link: '/' + (d.url_path || 'lovelace'), level: 'warn' });
+      }
+    }
+    if (!items.length) return R.pass(n ? `All ${pl(n, 'navigation link')} point somewhere real` : 'No navigation buttons found');
+    return R.warn(`${pl(items.length, 'navigation link')} ${items.length === 1 ? 'leads' : 'lead'} nowhere`, { items });
+  } });
+def({ id: 'dashboards.resources', cat: 'dashboards', level: 'advanced', title: 'Custom cards & resources',
+  desc: 'Custom card files load, and the custom cards you use appear to be installed.',
+  explain: 'Custom cards (often from HACS) need their JavaScript file. A missing file shows "Custom element doesn\'t exist" on the dashboard.',
+  fix: 'Reinstall missing cards through HACS, or fix the URL under Settings → Dashboards → ⋮ → Resources. Clear your browser cache afterwards.',
+  async run(ctx) {
+    let res = [];
+    try { res = await ctx.call({ type: 'lovelace/resources' }); } catch (e) { if (e.code !== 'unknown_command') throw e; }
+    const items = []; let unverified = 0;
+    await pool(res, 4, async r => {
+      const st = await ctx.fetchStatus(r.url);
+      if (st === null) { unverified++; return; }
+      if (!(st >= 200 && st < 400)) items.push({ label: r.url, sub: st ? `File returned HTTP ${st}` : 'File could not be loaded', link: '/config/lovelace/resources', level: 'fail' });
+    });
+    const used = new Set();
+    (await ctx.dashboards()).forEach(d => d.config && walk(d.config, (k, v) => { if (k === 'type' && typeof v === 'string' && v.startsWith('custom:')) used.add(v.slice(7)); }));
+    const urls = res.map(r => String(r.url).toLowerCase());
+    const pw = ctx.conn.parentWin;
+    for (const name of used) {
+      let defined = false; try { defined = !!(pw && pw.customElements.get(name)); } catch {}
+      const base = name.replace(/-card$/, ''), first = base.split('-')[0];
+      if (!defined && !urls.some(u => u.includes(name) || u.includes(base) || (first.length > 3 && u.includes(first))))
+        items.push({ label: 'custom:' + name, sub: 'Used on a dashboard, but no matching resource found. It may be missing (or bundled under another name).', link: '/config/lovelace/resources', level: 'warn' });
+    }
+    const s = `${pl(res.length, 'resource')}, ${pl(used.size, 'custom card type')} in use` + (unverified ? ` (${unverified} file${unverified > 1 ? 's' : ''} couldn't be checked from here)` : '');
+    if (items.some(i => i.level === 'fail')) return R.fail(s, { items });
+    if (items.length) return R.warn(s, { items });
+    return R.pass(s);
+  } });
+
+/* Database & Backups */
+def({ id: 'data.recorder', cat: 'data', level: 'basic', title: 'History recording',
+  desc: 'The recorder that saves history and statistics is running and keeping up.',
+  explain: 'If the recorder stops, graphs, history, the Energy dashboard and long-term statistics stop updating.',
+  fix: 'Check Settings → System → Logs for "recorder" errors. A slow SD card or a very large database are the usual causes. Excluding noisy entities from the recorder helps.',
+  async run(ctx) {
+    const r = await ctx.call({ type: 'recorder/info' });
+    if (!r.thread_running) return R.fail('The recorder is not running. History is not being saved.', { raw: r });
+    if (r.migration_in_progress) return R.info('A database upgrade is in progress. Leave Home Assistant running until it finishes.', { raw: r });
+    if (!r.recording) return R.warn('The recorder is paused. History is not being saved right now.', { raw: r });
+    if (r.backlog > 1000) return R.warn(`The recorder is falling behind (${r.backlog} events waiting)`, { raw: r });
+    return R.pass(`Recording normally${r.backlog ? ` (${r.backlog} waiting)` : ''}`, { raw: r });
+  } });
+def({ id: 'data.backups', cat: 'data', level: 'basic', quick: true, title: 'Backups',
+  desc: 'You have a recent backup, automatic backups are working, and copies are stored off the device.',
+  explain: 'Without a recent backup, a failed SD card or disk means rebuilding everything from scratch.',
+  fix: 'Go to Settings → System → Backups. Turn on automatic backups and add an off-device location (Home Assistant Cloud, a network share, or Google Drive).',
+  async run(ctx) {
+    let backups = null, lastTry = null, lastOk = null, autoCfg, items = [];
+    try {
+      const i = await ctx.call({ type: 'backup/info' });
+      backups = i.backups || []; lastTry = i.last_attempted_automatic_backup; lastOk = i.last_completed_automatic_backup;
+      try { const ci = await ctx.call({ type: 'backup/config/info' }); autoCfg = ci.config && ci.config.automatic_backups_configured; } catch {}
+    } catch (e) {
+      if (await ctx.supervised()) backups = ((await ctx.sup('/backups')).backups) || [];
+      else throw e;
+    }
+    if (!backups.length) return R.fail('No backups found', { items: [{ label: 'Create your first backup', link: '/config/backup', level: 'fail' }] });
+    backups.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    const newest = backups[0], age = (Date.now() - Date.parse(newest.date)) / 864e5, lim = ctx.settings.backupDays;
+    let level = age > lim * 2 ? 'fail' : age > lim ? 'warn' : 'pass';
+    items.push({ label: `Newest backup: ${newest.name || newest.slug || newest.backup_id}`, sub: ago(newest.date), link: '/config/backup', level: level === 'pass' ? undefined : level });
+    if (autoCfg === false) { items.push({ label: 'Automatic backups are not set up', link: '/config/backup', level: 'warn' }); if (level === 'pass') level = 'warn'; }
+    if (lastTry && (!lastOk || Date.parse(lastTry) > Date.parse(lastOk))) { items.push({ label: 'The most recent automatic backup failed', sub: 'Attempted ' + ago(lastTry), link: '/config/backup', level: 'warn' }); if (level === 'pass') level = 'warn'; }
+    if (newest.agents && Object.keys(newest.agents).every(a => /\.local$/.test(a))) { items.push({ label: 'Backups are only stored on this device', sub: 'If the disk fails, the backups are lost with it', link: '/config/backup/settings', level: 'warn' }); if (level === 'pass') level = 'warn'; }
+    items.push({ label: `${pl(backups.length, 'backup')} available`, sub: 'oldest ' + ago(backups[backups.length - 1].date) });
+    return R[level](`Newest backup is ${Math.floor(age)} day${Math.floor(age) === 1 ? '' : 's'} old`, { items });
+  } });
+
+/* Host & Apps */
+def({ id: 'host.health', cat: 'host', level: 'basic', quick: true, title: 'Supervisor health',
+  desc: 'Unhealthy or unsupported system states and Supervisor issues.',
+  explain: 'The Supervisor manages updates and apps. If it marks the system unhealthy, updates may be blocked.',
+  fix: 'Go to Settings → System → Repairs. The Supervisor usually explains the cause and often offers a fix.',
+  async run(ctx) {
+    if (!(await ctx.supervised())) return notSupervised();
+    const r = await ctx.sup('/resolution/info'), items = [];
+    (r.unhealthy || []).forEach(x => items.push({ label: 'Unhealthy: ' + human(x), link: '/config/repairs', level: 'fail' }));
+    (r.unsupported || []).forEach(x => items.push({ label: 'Unsupported: ' + human(x), link: '/config/repairs', level: 'warn' }));
+    (r.issues || []).forEach(x => items.push({ label: 'Issue: ' + human(x.type), sub: x.context + (x.reference ? ' · ' + x.reference : ''), link: '/config/repairs', level: 'warn' }));
+    (r.suggestions || []).forEach(x => items.push({ label: 'Suggestion: ' + human(x.type), sub: x.context, level: 'info' }));
+    if ((r.unhealthy || []).length) return R.fail('The Supervisor reports the system as unhealthy', { items });
+    if (items.some(i => i.level === 'warn')) return R.warn(`${pl(items.filter(i => i.level !== 'info').length, 'Supervisor issue')}`, { items });
+    if (items.length) return R.info('Healthy, with suggestions', { items });
+    return R.pass('Healthy and supported');
+  } });
+def({ id: 'host.disk', cat: 'host', level: 'basic', quick: true, title: 'Disk space',
+  desc: 'Free storage on the Home Assistant machine.',
+  explain: 'When the disk fills up, updates and backups fail and the database can get corrupted.',
+  fix: 'Delete old backups (or move them off-device), exclude noisy entities from the recorder, lower "keep days" for history, or move to a larger drive.',
+  async run(ctx) {
+    if (!(await ctx.supervised())) return notSupervised();
+    const h = await ctx.sup('/host/info');
+    if (!h.disk_total) return R.skip('Disk information not reported');
+    const pct = Math.round(h.disk_used / h.disk_total * 100), s = `${pct}% used (${(+h.disk_free).toFixed(1)} GB free of ${(+h.disk_total).toFixed(0)} GB)`;
+    return pct >= 95 ? R.fail(s) : pct >= ctx.settings.diskPct ? R.warn(s) : R.pass(s);
+  } });
+def({ id: 'host.resources', cat: 'host', level: 'advanced', title: 'Memory & CPU',
+  desc: 'How much memory and CPU Home Assistant Core is using right now.',
+  explain: 'High memory use causes slowdowns and crashes. Consistently high CPU makes everything feel sluggish.',
+  fix: 'Look for a recently added integration or custom component using a lot of resources (Settings → System → Logs), or stop apps you don\'t use under Settings → Apps.',
+  async run(ctx) {
+    if (!(await ctx.supervised())) return notSupervised();
+    const s = await ctx.sup('/core/stats'), m = Math.round(s.memory_percent), c = Math.round(s.cpu_percent);
+    const t = `Memory ${m}%, CPU ${c}% (snapshot)`;
+    if (m >= 97) return R.fail(t, { raw: s });
+    if (m >= ctx.settings.memPct || c >= 85) return R.warn(t, { raw: s });
+    return R.pass(t, { raw: s });
+  } });
+def({ id: 'host.internet', cat: 'host', level: 'basic', title: 'Internet connection',
+  desc: 'Whether the machine can reach the internet.',
+  explain: 'Without internet, cloud integrations, updates, voice assistants and remote access stop working. Local devices keep working.',
+  fix: "Check the machine's network cable or Wi-Fi and your router. Then check DNS under Settings → System → Network.",
+  async run(ctx) {
+    if (!(await ctx.supervised())) return notSupervised();
+    const n = await ctx.sup('/network/info');
+    if (n.host_internet === false || n.supervisor_internet === false) return R.fail('No internet connection', { items: [{ label: 'Host internet: ' + (n.host_internet ? 'yes' : 'no') }, { label: 'Supervisor internet: ' + (n.supervisor_internet ? 'yes' : 'no') }] });
+    return R.pass('Connected to the internet');
+  } });
+def({ id: 'host.addons', cat: 'host', level: 'basic', title: 'Apps',
+  desc: 'Apps set to start on boot that aren\'t running, and app updates.',
+  explain: 'These apps have Start on boot turned on but aren\'t running, so they most likely crashed or failed to start. Anything that depends on them stops working too: for example, MQTT devices stop when the Mosquitto broker app is down.',
+  fix: 'Go to Settings → Apps and select the app (or use Open ↗). Open the Log tab to see why it stopped, fix what it reports, then go back to the Info tab and select Start. To have it restarted automatically if it crashes again, turn on Watchdog on the Info tab.',
+  async run(ctx) {
+    if (!(await ctx.supervised())) return notSupervised();
+    const v = String((await ctx.config()).version || '').split('.').map(Number);
+    const appsUI = v[0] > 2026 || (v[0] === 2026 && v[1] >= 2); // add-ons became apps in 2026.2
+    const link = slug => appsUI ? '/config/app/' + slug : '/hassio/addon/' + slug + '/info';
+    const a = (await ctx.sup('/addons')).addons || [], items = [], down = [];
+    const stopped = a.filter(x => x.state !== 'started' && x.state !== 'startup');
+    const info = await pool(stopped, 4, x => ctx.sup(`/addons/${x.slug}/info`));
+    stopped.forEach((x, i) => {
+      const d = info[i] && !info[i].__err ? info[i] : null;
+      if (!d || d.boot !== 'auto' || d.startup === 'once') return; // one-shot apps stop on purpose
+      down.push(x.name);
+      items.push({ label: x.name, sub: `Start on boot is on, but it is ${x.state === 'error' ? 'in an error state' : 'stopped'}${d.watchdog ? ' (Watchdog is on but could not keep it running)' : ''}`, link: link(x.slug), level: 'fail' });
+    });
+    a.filter(x => x.update_available).forEach(x => items.push({ label: x.name, sub: `Update available: ${x.version} → ${x.version_latest}`, link: link(x.slug), level: 'info' }));
+    const running = a.filter(x => x.state === 'started').length;
+    const s = `${pl(a.length, 'app')} installed, ${running} running`;
+    if (down.length) return R.fail(`${down.join(', ')} ${down.length === 1 ? 'is' : 'are'} not running`, { items });
+    if (items.length) return R.info(s, { items });
+    return R.pass(s + '. Every app set to start on boot is running');
+  } });
+
+/* Users & Security */
+def({ id: 'security.admin', cat: 'security', level: 'basic', quick: true, title: 'Your access level',
+  desc: 'Whether this account can run every check.',
+  explain: 'Many diagnostics, such as logs, integrations and apps, are only visible to administrators.',
+  fix: 'Run this page while logged in as an administrator to get a complete report.',
+  async run(ctx) {
+    const u = await ctx.user();
+    return u.is_admin ? R.pass(`Logged in as ${u.name} (administrator)`) : R.warn(`Logged in as ${u.name} (not an administrator). Some checks will be skipped.`);
+  } });
+def({ id: 'security.users', cat: 'security', level: 'basic', title: 'User accounts',
+  desc: 'Who has access, and how many accounts are administrators.',
+  explain: 'Every administrator can change anything, including deleting devices and reading passwords stored in integrations. Wall tablets and family members rarely need admin.',
+  fix: 'Settings → People → Users. Turn off "Administrator" for accounts that don\'t need it and remove accounts nobody uses.',
+  async run(ctx) {
+    const u = (await ctx.call({ type: 'config/auth/list' })).filter(x => !x.system_generated);
+    const admins = u.filter(x => (x.group_ids || []).includes('system-admin') && x.is_active), inactive = u.filter(x => !x.is_active);
+    const items = admins.map(x => ({ label: x.name, sub: 'Administrator' + (x.is_owner ? ' · owner' : ''), link: '/config/person', level: admins.length > 2 && !x.is_owner ? 'warn' : undefined }))
+      .concat(inactive.map(x => ({ label: x.name, sub: 'Deactivated (can be removed)', link: '/config/person', level: 'info' })));
+    const s = `${pl(u.filter(x => x.is_active).length, 'active user')}, ${pl(admins.length, 'administrator')}`;
+    return admins.length > 2 ? R.warn(s + '. Consider fewer admins.', { items }) : R.info(s, { items });
+  } });
+def({ id: 'security.tokens', cat: 'security', level: 'advanced', title: 'Long-lived access tokens',
+  desc: "Your account's access tokens that haven't been used in a long time.",
+  explain: 'Tokens give full access without a password. Old tokens left over from scripts or apps you stopped using are a needless risk. Only the current account\'s tokens are visible.',
+  fix: 'Go to your Profile → Security tab and delete tokens you no longer recognise or use.',
+  async run(ctx) {
+    const t = await ctx.call({ type: 'auth/refresh_tokens' });
+    const cut = Date.now() - ctx.settings.tokenDays * 864e5;
+    const ll = t.filter(x => x.type === 'long_lived_access_token');
+    const old = ll.filter(x => !x.last_used_at || Date.parse(x.last_used_at) < cut);
+    const sessions = t.filter(x => x.type === 'normal');
+    const items = old.map(x => ({ label: x.client_name || 'Unnamed token', sub: `created ${ago(x.created_at)} · last used ${ago(x.last_used_at)}`, link: '/profile/security', level: 'warn' }));
+    if (sessions.length > 30) items.push({ label: `${sessions.length} logged-in sessions`, sub: 'Old browser and app logins can be cleared on the Security tab', link: '/profile/security', level: 'info' });
+    if (old.length) return R.warn(`${pl(old.length, 'token')} unused for over ${ctx.settings.tokenDays} days`, { items });
+    return R.pass(`${pl(ll.length, 'long-lived token')}, all in recent use`, { items });
+  } });
+def({ id: 'security.remote', cat: 'security', level: 'basic', title: 'Remote access encryption',
+  desc: 'Whether access from outside your home is encrypted (https).',
+  explain: 'Over plain http, passwords and tokens travel unencrypted across the internet.',
+  fix: 'Use Home Assistant Cloud (Nabu Casa), or add an https certificate (for example the Let\'s Encrypt or DuckDNS app) and update the external URL under Settings → System → Network.',
+  async run(ctx) {
+    const c = await ctx.config(), items = [];
+    const priv = h => /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1|.*\.local$|.*\.lan$|.*\.home\.arpa$|homeassistant$)/i.test(h);
+    if (c.external_url && /^http:/i.test(c.external_url)) {
+      let host = ''; try { host = new URL(c.external_url).hostname; } catch {}
+      if (!priv(host)) items.push({ label: 'External URL uses http (unencrypted)', sub: c.external_url, link: '/config/network', level: 'warn' });
+    }
+    if (ctx.conn.base) { try { const u = new URL(ctx.conn.base); if (u.protocol === 'http:' && !priv(u.hostname)) items.push({ label: 'This page is reaching Home Assistant over unencrypted http from outside your network', sub: u.origin, level: 'warn' }); } catch {} }
+    if (items.length) return R.warn('Remote access is not encrypted', { items });
+    if ((c.components || []).includes('cloud')) return R.pass('Remote access through Home Assistant Cloud (encrypted)');
+    if (c.external_url) return R.pass('External URL uses https');
+    return R.info('No external URL configured. Remote access is either off or set up elsewhere.');
+  } });
+
+const QUICK = C.filter(c => c.quick).map(c => c.id);
+
+/* ---------------- State & UI ---------------- */
+let conn = null, cancelled = false, running = false, lastRun = null, filter = 'all', viewBy = 'priority';
+let mode = store.get('mode', 'simple');
+let settings = { ...DEFAULTS, ...store.get('settings', {}) };
+let selected = new Set(store.get('sel', QUICK).filter(id => C.some(c => c.id === id)));
+const ICON = { pass: '✓', warn: '!', fail: '✕', info: 'i', skip: '–' };
+const SLABEL = { pass: 'Passed', warn: 'Needs attention', fail: 'Failed', info: 'Good to know', skip: 'Skipped' };
+const RANK = { pass: 0, info: 0, warn: 1, fail: 2 };
+
+function setConn(text, cls) { $('#connText').textContent = text; $('#connPill').className = 'pill ' + cls; }
+function setMode(m) {
+  mode = m; store.set('mode', m);
+  document.body.classList.toggle('detailed', m === 'detailed');
+  $$('.seg button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  if (lastRun && !$('#report').classList.contains('hidden')) renderReport();
+}
+// Home Assistant's sidebar runs this page in a sandboxed frame that may not navigate the main window
+// with a normal link. When we share Home Assistant's window, move it the way its own frontend does;
+// otherwise the link opens in a new tab.
+function navigateHA(path) {
+  const w = conn && conn.parentWin;
+  if (!w || !path) return false;
+  try {
+    w.history.pushState(null, '', path);
+    w.dispatchEvent(new w.CustomEvent('location-changed', { detail: { replace: false } }));
+    return true;
+  } catch { return false; }
+}
+function linkHref(p) { if (!p || !conn || conn.kind === 'demo') return null; return (conn.base || '') + p; }
+
+function renderSetup() {
+  $('#checks').innerHTML = CATS.map(cat => {
+    const cs = C.filter(c => c.cat === cat.id);
+    return `<section class="cat card" data-cat="${cat.id}">
+      <label class="cat-head"><input type="checkbox" class="cat-toggle" data-cat="${cat.id}"><span class="cat-icon">${cat.icon}</span><span>${esc(cat.name)}</span><span class="muted cat-count"></span></label>
+      <p class="cat-desc muted">${esc(cat.desc)}</p>
+      <ul class="check-list">${cs.map(c => `<li><label><input type="checkbox" class="chk" value="${c.id}" ${selected.has(c.id) ? 'checked' : ''}>
+        <span><span class="check-title">${esc(c.title)}</span>${c.level === 'advanced' ? '<span class="tag">Advanced</span>' : ''}${c.quick ? '<span class="tag tag-quick">Quick</span>' : ''}
+        <span class="check-desc">${esc(c.desc)}</span><code class="check-id det">${c.id}</code></span></label></li>`).join('')}</ul></section>`;
+  }).join('');
+  $('#thGrid').innerHTML = Object.keys(DEFAULTS).map(k => `<label>${esc(TH_LABELS[k])}<input type="number" min="0" data-th="${k}" value="${settings[k]}"></label>`).join('');
+  syncSelection();
+}
+function syncSelection() {
+  $$('.chk').forEach(c => { c.checked = selected.has(c.value); });
+  CATS.forEach(cat => {
+    const ids = C.filter(c => c.cat === cat.id).map(c => c.id), n = ids.filter(id => selected.has(id)).length;
+    const t = $(`.cat-toggle[data-cat="${cat.id}"]`); t.checked = n === ids.length; t.indeterminate = n > 0 && n < ids.length;
+    $(`.cat[data-cat="${cat.id}"] .cat-count`).textContent = `${n}/${ids.length}`;
+  });
+  $('#runSel').textContent = `Run selected (${selected.size})`;
+  $('#runSel').disabled = !conn || !selected.size || running;
+  $('#runQuick').disabled = $('#runAll').disabled = !conn || running;
+  store.set('sel', [...selected]);
+}
+
+/* ---------------- Running ---------------- */
+function errToResult(e) {
+  const code = e && e.code;
+  if (code === 'unknown_command' || code === 'not_found') return R.skip('Not available on this Home Assistant version or installation type.');
+  if (code === 'unauthorized') return R.skip('Needs an administrator account.');
+  if (code === 'timeout') return R.skip('Timed out waiting for Home Assistant.');
+  return R.skip("Couldn't complete this check: " + ((e && e.message) || e));
+}
+async function runChecks(ids) {
+  if (!conn || running) return;
+  const list = C.filter(c => ids.includes(c.id)); if (!list.length) return;
+  running = true; cancelled = false; syncSelection();
+  const ctx = makeCtx(conn, settings);
+  const run = { started: Date.now(), kind: conn.kind, results: [] };
+  $('#report').classList.add('hidden'); $('#progress').classList.remove('hidden'); $('#live').innerHTML = '';
+  $('#progress').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  for (let i = 0; i < list.length; i++) {
+    if (cancelled) break;
+    const c = list[i];
+    $('#progText').textContent = `Checking ${c.title.toLowerCase()}… (${i + 1} of ${list.length})`;
+    $('#progBar').style.width = (i / list.length * 100) + '%';
+    const t0 = performance.now(); let res;
+    try { res = await timeout(c.run(ctx), 60000); } catch (e) { res = errToResult(e); }
+    if (!res || !res.status) res = R.skip('No result returned.');
+    run.results.push({ id: c.id, res, ms: Math.round(performance.now() - t0) });
+    $('#live').insertAdjacentHTML('beforeend', `<span class="chip"><span class="d ${res.status}"></span>${esc(c.title)}</span>`);
+  }
+  $('#progBar').style.width = '100%';
+  run.finished = Date.now(); run.cancelled = cancelled;
+  try { const cfg = await ctx.config(); run.haVersion = cfg.version; run.location = cfg.location_name; } catch {}
+  // Compare with previous run
+  const prev = conn.kind === 'demo' ? store.get('demoLast') : store.get('last');
+  if (prev) {
+    run.prevTime = prev.time;
+    run.results.forEach(r => {
+      const p = prev.statuses[r.id], n = r.res.status;
+      if (!p || p === 'skip' || n === 'skip') return;
+      if (RANK[n] > RANK[p]) r.delta = RANK[p] === 0 ? 'new' : 'worse';
+      else if (RANK[n] < RANK[p] && RANK[n] === 0) r.delta = 'fixed';
+    });
+  }
+  const statuses = Object.assign({}, prev && prev.statuses, Object.fromEntries(run.results.map(r => [r.id, r.res.status])));
+  store.set(conn.kind === 'demo' ? 'demoLast' : 'last', { time: run.finished, statuses });
+  if (conn.kind !== 'demo') {
+    const slim = { ...run, results: run.results.map(r => ({ ...r, res: { ...r.res, raw: undefined, items: (r.res.items || []).slice(0, 300) } })) };
+    store.set('lastReport', slim); $('#showLast').classList.remove('hidden');
+  }
+  lastRun = run; running = false; filter = 'all';
+  $('#progress').classList.add('hidden'); syncSelection();
+  renderReport();
+  $('#report').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ---------------- Report ---------------- */
+function scoreOf(rs) {
+  const scored = rs.filter(r => r.res.status !== 'skip');
+  if (!scored.length) return null;
+  return Math.round(100 * scored.reduce((a, r) => a + ({ pass: 1, info: 1, warn: 0.6, fail: 0 })[r.res.status], 0) / scored.length);
+}
+function itemsHTML(items, limit) {
+  if (!items || !items.length) return '';
+  const shown = limit ? items.slice(0, limit) : items;
+  const li = shown.map(i => { const h = linkHref(i.link); return `<li class="${i.level ? 'lv-' + i.level : ''}"><span class="lbl">${esc(i.label)}${i.sub ? `<small class="${mode === 'detailed' ? 'mono' : ''}">${esc(i.sub)}</small>` : ''}</span>${h ? `<a href="${esc(h)}" data-nav="${esc(i.link)}" target="_blank" rel="noopener">Open ↗</a>` : ''}</li>`; }).join('');
+  const more = items.length - shown.length;
+  return `<ul class="items">${li}${more > 0 ? `<li class="muted">…and ${more} more. Switch to <a href="#" class="go-detailed">Detailed</a> view to see all.</li>` : ''}</ul>`;
+}
+function findingHTML(r) {
+  const c = C.find(x => x.id === r.id), res = r.res, cat = CATS.find(x => x.id === c.cat);
+  const problem = res.status === 'warn' || res.status === 'fail';
+  const explain = res.explain || c.explain, fix = res.fix || c.fix;
+  const body = [
+    problem ? `<div class="howto"><p><b>What this means:</b> ${esc(explain)}</p><p><b>How to fix:</b> ${esc(fix)}</p></div>`
+      : `<p class="muted">${esc(c.desc)}${res.status === 'info' && mode === 'simple' ? ' ' + esc(explain) : ''}</p>`,
+    itemsHTML(res.items, mode === 'simple' ? 6 : 0),
+    `<div class="det meta">Check <code>${c.id}</code> · ${r.ms} ms${c.level === 'advanced' ? ' · advanced' : ''}</div>`,
+    res.raw && mode === 'detailed' ? `<details class="det"><summary class="meta" style="cursor:pointer">Raw data</summary><pre class="raw">${esc(JSON.stringify(res.raw, null, 2))}</pre></details>` : '',
+  ].join('');
+  const delta = r.delta ? `<span class="delta delta-${r.delta}">${r.delta}</span>` : '';
+  return `<details class="finding st-${res.status}" ${res.status === 'fail' ? 'open' : ''}>
+    <summary><span class="sticon">${ICON[res.status]}</span><span class="f-main"><span class="f-title">${esc(c.title)}${delta}</span><span class="f-sum">${esc(res.summary)}</span></span><span class="f-cat">${cat.icon} ${esc(cat.name)}</span></summary>
+    <div class="f-body">${body}</div></details>`;
+}
+function renderReport() {
+  const run = lastRun; if (!run) return;
+  const rs = run.results.filter(r => C.some(c => c.id === r.id));
+  const counts = { fail: 0, warn: 0, info: 0, pass: 0, skip: 0 }; rs.forEach(r => counts[r.res.status]++);
+  const score = scoreOf(rs);
+  const verdict = score == null ? 'No results' : counts.fail ? 'Action required' : counts.warn ? 'Mostly healthy, with a few things to look at' : 'Looking healthy';
+  const color = score == null ? 'var(--skip)' : counts.fail ? 'var(--fail)' : counts.warn ? 'var(--warn)' : 'var(--pass)';
+  const newN = rs.filter(r => r.delta === 'new' || r.delta === 'worse').length, fixedN = rs.filter(r => r.delta === 'fixed').length;
+  const dur = ((run.finished - run.started) / 1000).toFixed(1);
+  const shown = rs.filter(r => filter === 'all' || r.res.status === filter);
+  const order = ['fail', 'warn', 'info', 'pass', 'skip'];
+  let groups;
+  if (viewBy === 'priority') groups = order.map(s => ({ title: SLABEL[s], list: shown.filter(r => r.res.status === s) }));
+  else groups = CATS.map(cat => ({ title: `${cat.icon} ${cat.name}`, list: shown.filter(r => C.find(c => c.id === r.id).cat === cat.id).sort((a, b) => order.indexOf(a.res.status) - order.indexOf(b.res.status)) }));
+  groups = groups.filter(g => g.list.length);
+
+  $('#report').innerHTML = `
+    <div class="card pad">
+      ${run.kind === 'demo' ? '<div class="banner info">Demo report. All data below is sample data.</div>' : ''}
+      ${run.cancelled ? '<div class="banner warn">The run was cancelled, so this report is partial.</div>' : ''}
+      <div class="summary">
+        <div class="ring" style="--p:${score ?? 0};--c:${color}"><div><span><b>${score ?? '–'}</b><br><small>health score</small></span></div></div>
+        <div>
+          <p class="verdict">${esc(verdict)}</p>
+          <div class="counts">${order.map(s => `<button class="count ${s} ${filter === s ? 'active' : ''}" data-filter="${s}"><b>${counts[s]}</b>${SLABEL[s]}</button>`).join('')}
+            ${filter !== 'all' ? '<button class="count" data-filter="all">Show all</button>' : ''}</div>
+          <div class="meta">${pl(rs.length, 'check')} in ${dur}s · ${new Date(run.finished).toLocaleString()}${run.haVersion ? ' · Home Assistant ' + esc(run.haVersion) : ''}</div>
+          ${run.prevTime ? `<div class="meta">Compared with the previous run (${ago(run.prevTime)}): ${newN ? `<b style="color:var(--fail)">${newN} new or worse</b>` : 'nothing new'}${fixedN ? `, <b style="color:var(--pass)">${fixedN} fixed</b>` : ''}.</div>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="report-tools">
+      <div class="seg" role="group" aria-label="Group by">
+        <button data-view="priority" class="${viewBy === 'priority' ? 'active' : ''}">By priority</button>
+        <button data-view="area" class="${viewBy === 'area' ? 'active' : ''}">By area</button>
+      </div>
+      <div class="row">
+        <button class="btn small" id="expAll">Expand all</button>
+        <button class="btn small" id="copyMd">Copy summary</button>
+        <button class="btn small" id="dlMd">Download report (.md)</button>
+        <button class="btn small det" id="dlJson">Download JSON</button>
+        <button class="btn small" id="printR">Print</button>
+        <button class="btn small primary" id="rerun">Run again</button>
+      </div>
+    </div>
+    ${groups.length ? groups.map(g => `<h3 class="group-title">${esc(g.title)} <span class="n">${g.list.length}</span></h3>${g.list.map(findingHTML).join('')}`).join('') : '<div class="card empty">Nothing matches this filter.</div>'}
+  `;
+  $('#report').classList.remove('hidden');
+}
+function toMarkdown(run) {
+  const e = { pass: '✅', warn: '⚠️', fail: '❌', info: 'ℹ️', skip: '⏭️' };
+  const rs = run.results.filter(r => C.some(c => c.id === r.id));
+  const order = ['fail', 'warn', 'info', 'pass', 'skip'];
+  const counts = order.map(s => `${SLABEL[s]}: ${rs.filter(r => r.res.status === s).length}`).join(' · ');
+  let md = `# Dege's Home Assistant Diagnostics Report\n\n${new Date(run.finished).toLocaleString()}${run.haVersion ? ` · Home Assistant ${run.haVersion}` : ''}${run.kind === 'demo' ? ' · DEMO DATA' : ''}\n\n**Health score:** ${scoreOf(rs) ?? '–'}/100  \n${counts}\n`;
+  for (const s of order) {
+    const list = rs.filter(r => r.res.status === s); if (!list.length) continue;
+    md += `\n## ${SLABEL[s]}\n\n`;
+    for (const r of list) {
+      const c = C.find(x => x.id === r.id);
+      md += `- ${e[s]} **${c.title}**: ${r.res.summary}\n`;
+      if (s === 'fail' || s === 'warn') md += `  - *How to fix:* ${r.res.fix || c.fix}\n`;
+      (r.res.items || []).slice(0, s === 'pass' ? 0 : 25).forEach(i => { md += `  - ${i.label}${i.sub ? ` (${i.sub})` : ''}\n`; });
+      if ((r.res.items || []).length > 25 && s !== 'pass') md += `  - …and ${r.res.items.length - 25} more\n`;
+    }
+  }
+  return md;
+}
+function download(name, text, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch {} ta.remove(); return ok; }
+}
+
+/* ---------------- Events ---------------- */
+$$('.seg button[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+$('#checks').addEventListener('change', e => {
+  const t = e.target;
+  if (t.classList.contains('chk')) { t.checked ? selected.add(t.value) : selected.delete(t.value); }
+  if (t.classList.contains('cat-toggle')) C.filter(c => c.cat === t.dataset.cat).forEach(c => t.checked ? selected.add(c.id) : selected.delete(c.id));
+  syncSelection();
+});
+$('#selAll').onclick = () => { selected = new Set(C.map(c => c.id)); syncSelection(); };
+$('#selNone').onclick = () => { selected.clear(); syncSelection(); };
+$('#selQuick').onclick = () => { selected = new Set(QUICK); syncSelection(); };
+$('#runQuick').onclick = () => runChecks(QUICK);
+$('#runAll').onclick = () => runChecks(C.map(c => c.id));
+$('#runSel').onclick = () => runChecks([...selected]);
+$('#btnCancel').onclick = () => { cancelled = true; $('#progText').textContent = 'Cancelling after the current check…'; };
+$('#thGrid').addEventListener('input', e => { const k = e.target.dataset.th; if (!k) return; const v = parseFloat(e.target.value); if (!isNaN(v)) { settings[k] = v; store.set('settings', settings); } });
+$('#thReset').onclick = () => { settings = { ...DEFAULTS }; store.set('settings', {}); renderSetup(); };
+$('#showLast').onclick = () => { const r = store.get('lastReport'); if (r) { lastRun = r; renderReport(); $('#report').scrollIntoView({ behavior: 'smooth' }); } };
+$('#report').addEventListener('click', async e => {
+  const t = e.target.closest('button,a'); if (!t) return;
+  if (t.classList.contains('go-detailed')) { e.preventDefault(); setMode('detailed'); return; }
+  if (t.dataset.nav) { if (navigateHA(t.dataset.nav)) e.preventDefault(); return; }
+  if (t.dataset.filter) { filter = t.dataset.filter; renderReport(); return; }
+  if (t.dataset.view) { viewBy = t.dataset.view; renderReport(); return; }
+  if (t.id === 'expAll') { const open = $$('#report details.finding').some(d => !d.open); $$('#report details.finding').forEach(d => d.open = open); t.textContent = open ? 'Collapse all' : 'Expand all'; }
+  if (t.id === 'copyMd') { const ok = await copyText(toMarkdown(lastRun)); t.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => t.textContent = 'Copy summary', 1800); }
+  if (t.id === 'dlMd') download(`ha-diagnostics-${new Date(lastRun.finished).toISOString().slice(0, 10)}.md`, toMarkdown(lastRun), 'text/markdown');
+  if (t.id === 'dlJson') download(`ha-diagnostics-${new Date(lastRun.finished).toISOString().slice(0, 10)}.json`, JSON.stringify(lastRun, null, 2), 'application/json');
+  if (t.id === 'printR') window.print();
+  if (t.id === 'rerun') { const ids = lastRun.results.map(r => r.id); runChecks(ids); }
+});
+let printOpen = [];
+window.addEventListener('beforeprint', () => { printOpen = $$('details.finding').map(d => d.open); $$('details.finding').forEach(d => d.open = true); });
+window.addEventListener('afterprint', () => { $$('details.finding').forEach((d, i) => d.open = printOpen[i]); });
+
+function onConnected(c) {
+  conn = c;
+  setConn(c.label, c.kind === 'demo' ? 'demo' : 'on');
+  $('#connect').classList.add('hidden');
+  $('#demoBanner').classList.toggle('hidden', c.kind !== 'demo');
+  syncSelection();
+}
+function showConnect(msg) {
+  $('#connect').classList.remove('hidden');
+  const saved = store.get('manual');
+  $('#haUrl').value = (saved && saved.url) || (/^https?:$/.test(location.protocol) ? location.origin : '');
+  if (msg) { $('#connErr').textContent = msg; $('#connErr').classList.remove('hidden'); }
+}
+$('#btnConnect').onclick = async () => {
+  $('#connErr').classList.add('hidden'); setConn('Connecting…', 'busy');
+  const url = $('#haUrl').value, tok = $('#haToken').value;
+  if (!url || !tok) { setConn('Not connected', 'off'); showConnect('Enter both the address and an access token.'); return; }
+  try {
+    const c = await connectManual(url, tok);
+    if ($('#rememberTok').checked) store.set('manual', { url, token: tok }); else store.set('manual', { url });
+    onConnected(c);
+  } catch (e) { setConn('Not connected', 'off'); showConnect(e.message); }
+};
+$('#btnDemo').onclick = () => onConnected(makeDemo());
+$('#leaveDemo').onclick = e => { e.preventDefault(); conn = null; $('#demoBanner').classList.add('hidden'); setConn('Not connected', 'off'); showConnect(); syncSelection(); };
+
+async function init() {
+  setMode(mode); renderSetup();
+  if (store.get('lastReport')) $('#showLast').classList.remove('hidden');
+  if (new URLSearchParams(location.search).has('demo')) { onConnected(makeDemo()); return; }
+  setConn('Connecting…', 'busy');
+  let c = connectParent();
+  if (!c) c = await connectStoredLogin();
+  if (!c) { const s = store.get('manual'); if (s && s.token) { try { c = await connectManual(s.url, s.token); } catch {} } }
+  if (c) onConnected(c); else { setConn('Not connected', 'off'); showConnect(); syncSelection(); }
+}
+init();
+</script>
+</body>
+</html>
